@@ -4,40 +4,14 @@ using System.CommandLine.Hosting;
 using Microsoft.Extensions.Hosting;
 using System.CommandLine.Parsing;
 using Commandir.Core;
-using Commandir.Actions;
 
 namespace Commandir
 {
     class Program
     {
-        const string Document = @"---
-            commands:
-               - name: greet
-                 type: shell/bash
-                 run: echo ${{message}}
-                 arguments:
-                    - name: message
-                      type: string
-               - name: greeter
-                 type: script/python
-                 script: greet.py 
-            ";
-
         static async Task Main(string[] args)
         {
-            ConsoleAction consoleAction = new ConsoleAction((context) =>
-            {
-                ParameterExecutionContext? greetingContext = context.Parameters.FirstOrDefault(i => i.Name == "greeting"); 
-                ParameterExecutionContext? nameContext = context.Parameters.FirstOrDefault(i => i.Name == "name");
-                return $"{greetingContext?.Value} {nameContext?.Value}";
-            });
-            ActionHandlerRegistry registry = new ActionHandlerRegistry();
-            registry.RegisterActionHandler(consoleAction);
-
-            CommandirCommand rootCommand = new YamlCommandBuilder().Build();
-            SetHandler(rootCommand, registry);
-
-            await BuildCommandLine(rootCommand)
+            await BuildCommandLine()
             .UseHost(_ => Host.CreateDefaultBuilder(),
                 host =>
                 {
@@ -50,7 +24,31 @@ namespace Commandir
             .InvokeAsync(args);
         }
 
-        private static void SetHandler(CommandirCommand command, ActionHandlerRegistry registry)
+        private static CommandLineBuilder BuildCommandLine()
+        {
+            ActionRegistry registry = new ActionRegistry();
+            registry.RegisterActions();
+
+            // Check for existence of file in curent directory?
+            string currentDirectory = Directory.GetCurrentDirectory(); 
+            string yamlFilePath = Path.Combine(currentDirectory, "Commandir.yaml");
+            if(!File.Exists(yamlFilePath))
+            {
+                throw new InvalidOperationException($"Directory `{currentDirectory} does not contain a Commandir.yaml file");
+            }
+            
+            var yamlFileReader = new StreamReader(yamlFilePath);
+            var yamlCommandBuilder = new YamlCommandBuilder(yamlFileReader);
+
+            RootCommand rootCommand = yamlCommandBuilder.Build();
+            foreach(CommandirCommand subCommand in rootCommand.Subcommands)
+            {
+                SetHandler(subCommand, registry);
+            }
+            return new CommandLineBuilder(rootCommand);
+        }
+
+        private static void SetHandler(CommandirCommand command, ActionRegistry registry)
         {
             command.SetHandler(async invocationContext => 
             {
@@ -74,12 +72,13 @@ namespace Commandir
                 // Create ActionExecutionContext
                 foreach(ActionContext actionContext in command.Actions)
                 {
-                    IActionHandler? actionHandler = registry.GetActionHandler(actionContext.Name);
-                    if(actionHandler == null)
+                    ActionExecutionContext executionContext = new ActionExecutionContext(parameters);
+
+                    IAction? action = registry.GetAction(actionContext.Name);
+                    if(action == null)
                         throw new Exception();
                     
-                    ActionExecutionContext executionContext = new ActionExecutionContext(parameters);
-                    await actionHandler.ExecuteAsync(executionContext);
+                    await action.ExecuteAsync(executionContext);
                 }
             });
 
@@ -88,22 +87,5 @@ namespace Commandir
                 SetHandler(subCommand, registry);
             }
         }
-
-        private static CommandLineBuilder BuildCommandLine(Command rootCommand)
-        {
-            return new CommandLineBuilder(rootCommand);
-        }
-
-        // private static void Run(GreeterOptions options, IHost host)
-        // {
-        //     var serviceProvider = host.Services;
-        //     var greeter = serviceProvider.GetRequiredService<IGreeter>();
-        //     var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-        //     var logger = loggerFactory.CreateLogger(typeof(Program));
-
-        //     var name = options.Name;
-        //     logger.LogInformation(GreetEvent, "Greeting was requested for: {name}", name);
-        //     greeter.Greet(name);
-        // }
     }
 }

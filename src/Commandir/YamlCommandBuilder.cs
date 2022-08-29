@@ -6,31 +6,36 @@ namespace Commandir
 {
     public interface ICommmandBuilder
     {
-        CommandirCommand Build();
+        CommandirRootCommand Build();
+    }
+
+    public abstract class CommandBuilder
+    {
+        RootCommand Build();
     }
 
     public class YamlCommandBuilder : ICommmandBuilder
     {
-        const string Commands = @"---
-        description: Greeting Commands
-        commands:
-           - name: greet
-             description: Greets the user
-             actions:
-                - name: console
-                  shell: bash
-                  run: echo ${{greeting}} ${{name}}
-                - name: console
-                  shell: bash
-                  run: echo ${{greeting}} ${{name}}
-             arguments:
-                - name: greeting
-                  type: string
-                  description: The greeting.
-             options:
-                - name: name
-                  description: The name.
-        ";
+        // const string Commands = @"---
+        // description: Greeting Commands
+        // commands:
+        //    - name: greet
+        //      description: Greets the user
+        //      actions:
+        //         - name: greet
+        //           shell: bash
+        //           run: echo ${{greeting}} ${{name}}
+        //         - name: greet
+        //           shell: bash
+        //           run: echo ${{greeting}} ${{name}}
+        //      arguments:
+        //         - name: greeting
+        //           type: string
+        //           description: The greeting.
+        //      options:
+        //         - name: name
+        //           description: The name.
+        // ";
 
         private static readonly YamlScalarNode NameKey = new YamlScalarNode("name");
         private static readonly YamlScalarNode DescriptionKey = new YamlScalarNode("description");
@@ -38,11 +43,17 @@ namespace Commandir
         private static readonly YamlScalarNode ArgumentsKey = new YamlScalarNode("arguments");
         private static readonly YamlScalarNode OptionsKey = new YamlScalarNode("options");
 
-        public CommandirCommand Build()
+        private readonly TextReader _reader;
+        public YamlCommandBuilder(TextReader reader)
         {
-            StringReader reader = new StringReader(Commands);
+            _reader = reader;
+        }
+
+        public RootCommand Build()
+        {
+            //StringReader reader = new StringReader(Commands);
             YamlStream stream = new YamlStream();
-            stream.Load(reader);
+            stream.Load(_reader);
 
             // TODO: Validate document
             YamlMappingNode? rootNode = stream.Documents[0].RootNode as YamlMappingNode;
@@ -58,7 +69,7 @@ namespace Commandir
             if(string.IsNullOrWhiteSpace(rootDescription))
                 throw new Exception();
 
-            CommandirRootCommand rootCommand = new CommandirRootCommand(rootDescription);
+            RootCommand rootCommand = new RootCommand(rootDescription);
             
             YamlScalarNode CommandsKey = new YamlScalarNode("commands");
             if(!rootNode.Children.TryGetValue(CommandsKey, out node))

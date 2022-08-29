@@ -1,0 +1,16 @@
+---
+description: Greeting Commands
+commands:
+    - name: greet
+      description: Greets the user
+      actions:
+        - name: greet
+          shell: bash
+          run: echo ${{greeting}} ${{name}}
+      arguments:
+        - name: greeting
+          type: string
+          description: The greeting.
+      options:
+        - name: name
+          description: The name.

@@ -14,12 +14,4 @@ namespace Commandir
         {
         }
     }
-
-    public class CommandirRootCommand : CommandirCommand
-    {
-        public CommandirRootCommand(string description)
-            : base("root", description)
-        {
-        }
-    }
 }
