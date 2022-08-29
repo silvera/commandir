@@ -1,15 +1,10 @@
 ﻿using System.CommandLine;
-using System.CommandLine.Binding;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.CommandLine.Parsing;
-using YamlDotNet.RepresentationModel;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
-using System.IO;
 using Commandir.Core;
+using Commandir.Actions;
 
 namespace Commandir
 {
@@ -28,37 +23,70 @@ namespace Commandir
                  script: greet.py 
             ";
 
-        
-        
-
         static async Task Main(string[] args)
         {
-            StringReader reader = new StringReader(Document);
-            //YamlCommandSource commandSource = new YamlCommandSource(reader);
+            ConsoleAction consoleAction = new ConsoleAction((context) =>
+            {
+                ParameterExecutionContext? greetingContext = context.Parameters.FirstOrDefault(i => i.Name == "greeting"); 
+                ParameterExecutionContext? nameContext = context.Parameters.FirstOrDefault(i => i.Name == "name");
+                return $"{greetingContext?.Value} {nameContext?.Value}";
+            });
+            ActionHandlerRegistry registry = new ActionHandlerRegistry();
+            registry.RegisterActionHandler(consoleAction);
 
-            // What if we created the commands first and then wired up the handlers afterwards?
-            // Then we could use 
+            CommandirCommand rootCommand = new YamlCommandBuilder().Build();
+            SetHandler(rootCommand, registry);
 
-            //IReadOnlyCollection<Command> commands = commandSource.GetCommands();
-            // var commandDefinitionProvider = new TestCommandDefinitionProvider();
-            // CommandDefinition commandDefinitions = commandDefinitionProvider.GetDefinitions();
-            // CommandBuilder commandBuilder = new CommandBuilder();
-            // Command command = commandBuilder.Build(commandDefinitions);
-            CommandHandler commandHandler = new CommandHandler();
-            Command rootCommand = new YamlCommandBuilder(commandHandler).Build();
             await BuildCommandLine(rootCommand)
             .UseHost(_ => Host.CreateDefaultBuilder(),
                 host =>
                 {
                     host.ConfigureServices(services =>
                     {
-
-                        //services.AddSingleton<IGreeter, Greeter>();
                     });
                 })
             .UseDefaults()
             .Build()
             .InvokeAsync(args);
+        }
+
+        private static void SetHandler(CommandirCommand command, ActionHandlerRegistry registry)
+        {
+            command.SetHandler(async invocationContext => 
+            {
+                List<ParameterExecutionContext> parameters = new List<ParameterExecutionContext>();
+                
+                // Extract Argument values
+                foreach(Argument argument in command.Arguments)
+                {
+                    object? value = invocationContext.ParseResult.GetValueForArgument(argument);
+                    ParameterExecutionContext parameterContext = new ParameterExecutionContext(argument.Name, value);
+                    parameters.Add(parameterContext);
+                }
+                // Extract Option values
+                foreach(Option option in command.Options)
+                {
+                    object? value = invocationContext.ParseResult.GetValueForOption(option);
+                    ParameterExecutionContext parameterContext = new ParameterExecutionContext(option.Name, value);
+                    parameters.Add(parameterContext);
+                }
+                
+                // Create ActionExecutionContext
+                foreach(ActionContext actionContext in command.Actions)
+                {
+                    IActionHandler? actionHandler = registry.GetActionHandler(actionContext.Name);
+                    if(actionHandler == null)
+                        throw new Exception();
+                    
+                    ActionExecutionContext executionContext = new ActionExecutionContext(parameters);
+                    await actionHandler.ExecuteAsync(executionContext);
+                }
+            });
+
+            foreach(CommandirCommand subCommand in command.Subcommands)
+            {
+                SetHandler(subCommand, registry);
+            }
         }
 
         private static CommandLineBuilder BuildCommandLine(Command rootCommand)

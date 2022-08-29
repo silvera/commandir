@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using YamlDotNet.RepresentationModel;
 using Commandir.Core;
 
@@ -7,7 +6,7 @@ namespace Commandir
 {
     public interface ICommmandBuilder
     {
-        Command Build();
+        CommandirCommand Build();
     }
 
     public class YamlCommandBuilder : ICommmandBuilder
@@ -17,10 +16,13 @@ namespace Commandir
         commands:
            - name: greet
              description: Greets the user
-             handler:
-                name: shell
-                shell: bash
-                run: echo ${{greeting}} ${{name}}
+             actions:
+                - name: console
+                  shell: bash
+                  run: echo ${{greeting}} ${{name}}
+                - name: console
+                  shell: bash
+                  run: echo ${{greeting}} ${{name}}
              arguments:
                 - name: greeting
                   type: string
@@ -32,17 +34,11 @@ namespace Commandir
 
         private static readonly YamlScalarNode NameKey = new YamlScalarNode("name");
         private static readonly YamlScalarNode DescriptionKey = new YamlScalarNode("description");
+        private static readonly YamlScalarNode ActionsKey = new YamlScalarNode("actions");
         private static readonly YamlScalarNode ArgumentsKey = new YamlScalarNode("arguments");
         private static readonly YamlScalarNode OptionsKey = new YamlScalarNode("options");
-        private static readonly YamlScalarNode HandlerKey = new YamlScalarNode("handler");
 
-        private readonly ICommandContextHandler _commandHandler;
-        public YamlCommandBuilder(ICommandContextHandler commandHandler)
-        {
-            _commandHandler = commandHandler;
-        }
-
-        public Command Build()
+        public CommandirCommand Build()
         {
             StringReader reader = new StringReader(Commands);
             YamlStream stream = new YamlStream();
@@ -62,7 +58,7 @@ namespace Commandir
             if(string.IsNullOrWhiteSpace(rootDescription))
                 throw new Exception();
 
-            Command rootCommand = new RootCommand(rootDescription);
+            CommandirRootCommand rootCommand = new CommandirRootCommand(rootDescription);
             
             YamlScalarNode CommandsKey = new YamlScalarNode("commands");
             if(!rootNode.Children.TryGetValue(CommandsKey, out node))
@@ -86,24 +82,41 @@ namespace Commandir
                 if(string.IsNullOrWhiteSpace(commandDescription))
                     throw new Exception();
 
-                if(!(commandNode[HandlerKey] is YamlMappingNode handlerNode))
+                if(!(commandNode[ActionsKey] is YamlSequenceNode actionsListNode))
                     throw new Exception();
                 
-                HandlerContext handlerContext = new HandlerContext { Handler = _commandHandler };
-                foreach(var handlerPair in handlerNode)
+                CommandirCommand command = new CommandirCommand(commandName, commandDescription);                
+                
+                foreach(YamlMappingNode actionNode in actionsListNode)
                 {
-                    if(!(handlerPair.Key is YamlScalarNode itemNameNode))
+                    // Name
+                    if(!(actionNode[NameKey] is YamlScalarNode actionNameNode))
                         throw new Exception();
-                    
-                    // Only support scalar values for now.
-                    if(!(handlerPair.Value is YamlScalarNode itemValueNode))
+
+                    string? actionName = actionNameNode.Value;
+                    if(string.IsNullOrWhiteSpace(actionName))
                         throw new Exception();
+
+                    ActionContext actionContext = new ActionContext(actionName);
+                    foreach(var pair in actionNode)
+                    {
+                        if(!(pair.Key is YamlScalarNode keyNode))
+                            throw new Exception();
                     
-                    handlerContext.Entries[itemNameNode.Value] = itemValueNode.Value;
+                        // Only support scalar values for now.
+                        if(!(pair.Value is YamlScalarNode valueNode))
+                            throw new Exception();
+
+                        string? value = valueNode.Value;
+                        if(string.IsNullOrWhiteSpace(value))
+                            throw new Exception();
+
+                        actionContext[keyNode.Value!] = value;
+                    }
+
+                    command.AddAction(actionContext);
                 }
 
-                CommandWithHandler command = new CommandWithHandler(commandName, commandDescription, handlerContext);
-                
                 if(commandNode[ArgumentsKey] is YamlSequenceNode argumentsListNode)
                 {
                     foreach(YamlMappingNode argumentsNode in argumentsListNode)
