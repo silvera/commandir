@@ -4,39 +4,13 @@ using Commandir.Core;
 
 namespace Commandir
 {
-    public interface ICommmandBuilder
-    {
-        CommandirRootCommand Build();
-    }
-
     public abstract class CommandBuilder
     {
-        RootCommand Build();
+        public abstract RootCommand Build();
     }
 
-    public class YamlCommandBuilder : ICommmandBuilder
+    public class YamlCommandBuilder : CommandBuilder
     {
-        // const string Commands = @"---
-        // description: Greeting Commands
-        // commands:
-        //    - name: greet
-        //      description: Greets the user
-        //      actions:
-        //         - name: greet
-        //           shell: bash
-        //           run: echo ${{greeting}} ${{name}}
-        //         - name: greet
-        //           shell: bash
-        //           run: echo ${{greeting}} ${{name}}
-        //      arguments:
-        //         - name: greeting
-        //           type: string
-        //           description: The greeting.
-        //      options:
-        //         - name: name
-        //           description: The name.
-        // ";
-
         private static readonly YamlScalarNode NameKey = new YamlScalarNode("name");
         private static readonly YamlScalarNode DescriptionKey = new YamlScalarNode("description");
         private static readonly YamlScalarNode ActionsKey = new YamlScalarNode("actions");
@@ -49,9 +23,8 @@ namespace Commandir
             _reader = reader;
         }
 
-        public RootCommand Build()
+        public override RootCommand Build()
         {
-            //StringReader reader = new StringReader(Commands);
             YamlStream stream = new YamlStream();
             stream.Load(_reader);
 
