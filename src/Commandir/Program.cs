@@ -1,8 +1,6 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
-using System.CommandLine.Invocation;
-using System.CommandLine.NamingConventionBinder;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using System.CommandLine.Parsing;
@@ -31,14 +29,10 @@ namespace Commandir
 
         private static async Task HandleAsync(IHost host)
         {
-            InvocationContext invocationContext = host.Services.GetRequiredService<InvocationContext>();
-            CancellationToken cancellationToken = invocationContext.GetCancellationToken();
-            ActionCommand? command = invocationContext.ParseResult.CommandResult.Command as ActionCommand;
-            if(command == null)
-                throw new Exception();
-            
             New.ActionTypeRegistry actionTypeRegistry = host.Services.GetRequiredService<New.ActionTypeRegistry>();
-            foreach(ActionData actionData in command.Actions)
+            
+            IActionContextProvider provider = host.Services.GetRequiredService<IActionContextProvider>();
+            foreach(ActionData actionData in provider.GetActions())
             {
                 Type? actionType = actionTypeRegistry.GetType(actionData.Name);
                 if(actionType == null)
@@ -48,7 +42,7 @@ namespace Commandir
                 if(action == null)
                     throw new Exception($"Failed to find Action for type `{actionType}`");
 
-                await action.ExecuteAsync(cancellationToken);
+                await action.ExecuteAsync(provider.GetCancellationToken());
             }
         }
 

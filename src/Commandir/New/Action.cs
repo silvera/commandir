@@ -4,8 +4,8 @@ namespace Commandir.New
 {
     public abstract class Action
     {
-        protected IActionContext Context { get; }
-        protected Action(IActionContext context)
+        protected IActionContextProvider Context { get; }
+        protected Action(IActionContextProvider context)
         {
             Context = context;
         }
@@ -15,20 +15,20 @@ namespace Commandir.New
 
     public class RunAction : Action
     {
-        public RunAction(ActionContext context) : base(context)
+        public RunAction(IActionContextProvider context, IServiceProvider serviceProvider) : base(context)
         {
         }
 
         public override async Task ExecuteAsync(CancellationToken cancellationToken = default)
         {
-            if(!Context.Parameters.TryGetValue("shell", out object? shellObj))
+            if(!Context.GetParameters().TryGetValue("shell", out object? shellObj))
                 throw new Exception();
 
             string? shell = Convert.ToString(shellObj);
             if(string.IsNullOrWhiteSpace(shell))
                 throw new Exception();
 
-            if(!Context.Parameters.TryGetValue("run", out object? runObj))
+            if(!Context.GetParameters().TryGetValue("run", out object? runObj))
                 throw new Exception();
 
             string? run = Convert.ToString(runObj);
@@ -36,7 +36,7 @@ namespace Commandir.New
                 throw new Exception();
 
             // replace parameters (if any)
-            foreach(var parameterPair in Context.Parameters)
+            foreach(var parameterPair in Context.GetParameters())
             {
                 string parameterName = "${{" + $"{parameterPair.Key}" + "}}";
                 run = run.Replace(parameterName, Convert.ToString(parameterPair.Value));

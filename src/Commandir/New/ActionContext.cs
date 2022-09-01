@@ -4,44 +4,79 @@ using System.CommandLine.Parsing;
 
 namespace Commandir.New
 {
-    public interface IActionContext
+    public interface IActionContextProvider
     {
-        IReadOnlyDictionary<string, object?> Parameters { get; }
-        void AddParameter(string name, object? value);
+        IReadOnlyList<ActionData> GetActions();
+        IReadOnlyDictionary<string, object?> GetParameters();
+        CancellationToken GetCancellationToken();
     }
 
-    public class ActionContext : IActionContext
+    public class InvocationContextActionContextProvider : IActionContextProvider
     {
-        private readonly Dictionary<string, object?> _parameters = new Dictionary<string, object?>();
-        public void AddParameter(string name, object? value) => _parameters[name] = value;
-        public IReadOnlyDictionary<string, object?> Parameters => _parameters;
-
-        public ActionContext(InvocationContext invocationContext)
+        private readonly InvocationContext _invocationContext;
+        public InvocationContextActionContextProvider(InvocationContext invocationContext)
         {
-            ParseResult result = invocationContext.BindingContext.ParseResult;
+            _invocationContext = invocationContext; 
+        }
+
+        public CancellationToken GetCancellationToken() => _invocationContext.GetCancellationToken();
+
+        public IReadOnlyList<ActionData> GetActions()
+        {
+            ActionCommand? command = _invocationContext.ParseResult.CommandResult.Command as ActionCommand;
+            if(command == null)
+                throw new Exception();
+
+            return command.Actions;
+        }
+
+        public IReadOnlyDictionary<string, object?> GetParameters()
+        {
+            Dictionary<string, object?> parameters = new Dictionary<string, object?>();
+            
+            ParseResult result = _invocationContext.BindingContext.ParseResult;
             ActionCommand? command = result.CommandResult.Command as ActionCommand;
             if(command == null)
                 throw new Exception();
-                
+
             foreach(New.ActionData action in command.Actions)
             {
                 foreach(var pair in action)
                 {
-                    AddParameter(pair.Key, pair.Value);
+                    parameters[pair.Key]= pair.Value;
                 }
             }
 
             foreach(Argument argument in command.Arguments)
             {
                 object? value = result.GetValueForArgument(argument);
-                AddParameter(argument.Name, value);
+                parameters[argument.Name] = value;
             }
 
             foreach(Option option in command.Options)
             {
                 object? value = result.GetValueForOption(option);
-                AddParameter(option.Name, value);
+                parameters[option.Name] = value;
             }
+            
+            return parameters;
         }
     }
+    
+    // public class ActionContext
+    // {
+    //     private readonly Dictionary<string, object?> _parameters = new Dictionary<string, object?>();
+    //     public void AddParameter(string name, object? value) => _parameters[name] = value;
+    //     public IReadOnlyDictionary<string, object?> Parameters => _parameters;
+
+    //     private readonly IActionContextProvider _parameterProvider;
+    //     public ActionContext(IActionContextProvider parameterProvider)
+    //     {
+    //         _parameterProvider = parameterProvider;
+    //         foreach(var pair in _parameterProvider.GetParameters())
+    //         {
+    //             AddParameter(pair.Key, pair.Value);
+    //         }
+    //     }
+    // }
 }

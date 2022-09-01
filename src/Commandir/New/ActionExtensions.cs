@@ -9,7 +9,7 @@ namespace Commandir.New
         {
             ActionTypeRegistry actionTypeRegistry = new ActionTypeRegistry();
             services.AddSingleton(actionTypeRegistry);
-            services.AddTransient<New.ActionContext>();
+            services.AddTransient<IActionContextProvider, InvocationContextActionContextProvider>();
             Assembly assembly = Assembly.GetExecutingAssembly();
             foreach(Type type in assembly.GetExportedTypes()) 
             {
