@@ -1,15 +1,12 @@
+using Microsoft.Extensions.Hosting;
 using System.CommandLine;
+using System.CommandLine.NamingConventionBinder;
 using YamlDotNet.RepresentationModel;
-using Commandir.Core;
+using Commandir.New;
 
 namespace Commandir
 {
-    public abstract class CommandBuilder
-    {
-        public abstract RootCommand Build();
-    }
-
-    public class YamlCommandBuilder : CommandBuilder
+    public class YamlCommandBuilder
     {
         private static readonly YamlScalarNode NameKey = new YamlScalarNode("name");
         private static readonly YamlScalarNode DescriptionKey = new YamlScalarNode("description");
@@ -23,7 +20,7 @@ namespace Commandir
             _reader = reader;
         }
 
-        public override RootCommand Build()
+        public Command Build(Func<IHost, Task> commandHandler)
         {
             YamlStream stream = new YamlStream();
             stream.Load(_reader);
@@ -42,7 +39,7 @@ namespace Commandir
             if(string.IsNullOrWhiteSpace(rootDescription))
                 throw new Exception();
 
-            RootCommand rootCommand = new RootCommand(rootDescription);
+            Command rootCommand = new RootCommand(rootDescription);
             
             YamlScalarNode CommandsKey = new YamlScalarNode("commands");
             if(!rootNode.Children.TryGetValue(CommandsKey, out node))
@@ -69,7 +66,8 @@ namespace Commandir
                 if(!(commandNode[ActionsKey] is YamlSequenceNode actionsListNode))
                     throw new Exception();
                 
-                CommandirCommand command = new CommandirCommand(commandName, commandDescription);                
+                ActionCommand command = new ActionCommand(commandName, commandDescription);
+                command.Handler = CommandHandler.Create<IHost>(commandHandler);                
                 
                 foreach(YamlMappingNode actionNode in actionsListNode)
                 {
@@ -81,12 +79,16 @@ namespace Commandir
                     if(string.IsNullOrWhiteSpace(actionName))
                         throw new Exception();
 
-                    ActionContext actionContext = new ActionContext(actionName);
+                    ActionData action = new ActionData(actionName);
                     foreach(var pair in actionNode)
                     {
                         if(!(pair.Key is YamlScalarNode keyNode))
                             throw new Exception();
                     
+                        string? key = keyNode.Value;
+                        if(string.IsNullOrWhiteSpace(key))
+                            throw new Exception();
+
                         // Only support scalar values for now.
                         if(!(pair.Value is YamlScalarNode valueNode))
                             throw new Exception();
@@ -95,10 +97,11 @@ namespace Commandir
                         if(string.IsNullOrWhiteSpace(value))
                             throw new Exception();
 
-                        actionContext[keyNode.Value!] = value;
+                        action.Add(key, value);
+                        //actionContext[keyNode.Value!] = value;
                     }
 
-                    command.AddAction(actionContext);
+                    command.AddAction(action);
                 }
 
                 if(commandNode[ArgumentsKey] is YamlSequenceNode argumentsListNode)

@@ -13,6 +13,7 @@ namespace Commandir.Core
             {
                 if(type.GetInterface(nameof(IAction)) != null)
                 {
+
                     RegisterAction(type);
                 }
             }

@@ -4,9 +4,9 @@ commands:
     - name: greet
       description: Greets the user
       actions:
-        - name: greet
+        - name: RunAction
           shell: bash
-          run: echo ${{greeting}} ${{name}}
+          run: echo "${{greeting}} ${{name}}" 
       arguments:
         - name: greeting
           type: string
@@ -14,3 +14,18 @@ commands:
       options:
         - name: name
           description: The name.
+    - name: echo
+      description: Echoes the message
+      actions: 
+        - name: RunAction
+          shell: bash
+          run: echo ${{message}}
+      arguments:
+        - name: message
+          description: The messsage
+          type: string
+      options:
+         - name: unused
+           description: unused
+
+       

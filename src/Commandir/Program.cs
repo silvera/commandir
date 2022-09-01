@@ -1,9 +1,13 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
+using System.CommandLine.Invocation;
+using System.CommandLine.NamingConventionBinder;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using System.CommandLine.Parsing;
 using Commandir.Core;
+using Commandir.New;
 
 namespace Commandir
 {
@@ -12,11 +16,12 @@ namespace Commandir
         static async Task Main(string[] args)
         {
             await BuildCommandLine()
-            .UseHost(_ => Host.CreateDefaultBuilder(),
+            .UseHost(_ => Host.CreateDefaultBuilder(args),
                 host =>
-                {
-                    host.ConfigureServices(services =>
+                { 
+                    host.ConfigureServices(services => 
                     {
+                        services.AddActions();
                     });
                 })
             .UseDefaults()
@@ -24,11 +29,31 @@ namespace Commandir
             .InvokeAsync(args);
         }
 
+        private static async Task HandleAsync(IHost host)
+        {
+            InvocationContext invocationContext = host.Services.GetRequiredService<InvocationContext>();
+            CancellationToken cancellationToken = invocationContext.GetCancellationToken();
+            ActionCommand? command = invocationContext.ParseResult.CommandResult.Command as ActionCommand;
+            if(command == null)
+                throw new Exception();
+            
+            New.ActionTypeRegistry actionTypeRegistry = host.Services.GetRequiredService<New.ActionTypeRegistry>();
+            foreach(ActionData actionData in command.Actions)
+            {
+                Type? actionType = actionTypeRegistry.GetType(actionData.Name);
+                if(actionType == null)
+                    throw new Exception($"Failed to find ActionType for type `{actionData.Name}`");
+
+                New.Action? action = host.Services.GetRequiredService(actionType) as New.Action;
+                if(action == null)
+                    throw new Exception($"Failed to find Action for type `{actionType}`");
+
+                await action.ExecuteAsync(cancellationToken);
+            }
+        }
+
         private static CommandLineBuilder BuildCommandLine()
         {
-            ActionRegistry registry = new ActionRegistry();
-            registry.RegisterActions();
-
             // Check for existence of file in curent directory?
             string currentDirectory = Directory.GetCurrentDirectory(); 
             string yamlFilePath = Path.Combine(currentDirectory, "Commandir.yaml");
@@ -40,52 +65,8 @@ namespace Commandir
             var yamlFileReader = new StreamReader(yamlFilePath);
             var yamlCommandBuilder = new YamlCommandBuilder(yamlFileReader);
 
-            RootCommand rootCommand = yamlCommandBuilder.Build();
-            foreach(CommandirCommand subCommand in rootCommand.Subcommands)
-            {
-                SetHandler(subCommand, registry);
-            }
+            Command rootCommand = yamlCommandBuilder.Build(HandleAsync);
             return new CommandLineBuilder(rootCommand);
-        }
-
-        private static void SetHandler(CommandirCommand command, ActionRegistry registry)
-        {
-            command.SetHandler(async invocationContext => 
-            {
-                List<ParameterExecutionContext> parameters = new List<ParameterExecutionContext>();
-                
-                // Extract Argument values
-                foreach(Argument argument in command.Arguments)
-                {
-                    object? value = invocationContext.ParseResult.GetValueForArgument(argument);
-                    ParameterExecutionContext parameterContext = new ParameterExecutionContext(argument.Name, value);
-                    parameters.Add(parameterContext);
-                }
-                // Extract Option values
-                foreach(Option option in command.Options)
-                {
-                    object? value = invocationContext.ParseResult.GetValueForOption(option);
-                    ParameterExecutionContext parameterContext = new ParameterExecutionContext(option.Name, value);
-                    parameters.Add(parameterContext);
-                }
-                
-                // Create ActionExecutionContext
-                foreach(ActionContext actionContext in command.Actions)
-                {
-                    ActionExecutionContext executionContext = new ActionExecutionContext(parameters);
-
-                    IAction? action = registry.GetAction(actionContext.Name);
-                    if(action == null)
-                        throw new Exception();
-                    
-                    await action.ExecuteAsync(executionContext);
-                }
-            });
-
-            foreach(CommandirCommand subCommand in command.Subcommands)
-            {
-                SetHandler(subCommand, registry);
-            }
         }
     }
 }
