@@ -98,7 +98,6 @@ namespace Commandir
                             throw new Exception();
 
                         action.Add(key, value);
-                        //actionContext[keyNode.Value!] = value;
                     }
 
                     command.AddAction(action);

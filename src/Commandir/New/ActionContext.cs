@@ -62,21 +62,4 @@ namespace Commandir.New
             return parameters;
         }
     }
-    
-    // public class ActionContext
-    // {
-    //     private readonly Dictionary<string, object?> _parameters = new Dictionary<string, object?>();
-    //     public void AddParameter(string name, object? value) => _parameters[name] = value;
-    //     public IReadOnlyDictionary<string, object?> Parameters => _parameters;
-
-    //     private readonly IActionContextProvider _parameterProvider;
-    //     public ActionContext(IActionContextProvider parameterProvider)
-    //     {
-    //         _parameterProvider = parameterProvider;
-    //         foreach(var pair in _parameterProvider.GetParameters())
-    //         {
-    //             AddParameter(pair.Key, pair.Value);
-    //         }
-    //     }
-    // }
 }
