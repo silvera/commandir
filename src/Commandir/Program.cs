@@ -4,8 +4,6 @@ using System.CommandLine.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using System.CommandLine.Parsing;
-using Commandir.Core;
-using Commandir.New;
 
 namespace Commandir
 {
@@ -29,7 +27,7 @@ namespace Commandir
 
         private static async Task HandleAsync(IHost host)
         {
-            New.ActionTypeRegistry actionTypeRegistry = host.Services.GetRequiredService<New.ActionTypeRegistry>();
+            ActionTypeRegistry actionTypeRegistry = host.Services.GetRequiredService<ActionTypeRegistry>();
             
             IActionContextProvider provider = host.Services.GetRequiredService<IActionContextProvider>();
             foreach(ActionData actionData in provider.GetActions())
@@ -38,7 +36,7 @@ namespace Commandir
                 if(actionType == null)
                     throw new Exception($"Failed to find ActionType for type `{actionData.Name}`");
 
-                New.Action? action = host.Services.GetRequiredService(actionType) as New.Action;
+                Action? action = host.Services.GetRequiredService(actionType) as Action;
                 if(action == null)
                     throw new Exception($"Failed to find Action for type `{actionType}`");
 

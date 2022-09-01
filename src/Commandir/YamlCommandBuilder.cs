@@ -2,7 +2,6 @@ using Microsoft.Extensions.Hosting;
 using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
 using YamlDotNet.RepresentationModel;
-using Commandir.New;
 
 namespace Commandir
 {

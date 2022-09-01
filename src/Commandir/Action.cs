@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Commandir.New
+namespace Commandir
 {
     public abstract class Action
     {

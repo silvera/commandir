@@ -2,7 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 
-namespace Commandir.New
+namespace Commandir
 {
     public interface IActionContextProvider
     {
@@ -39,7 +39,7 @@ namespace Commandir.New
             if(command == null)
                 throw new Exception();
 
-            foreach(New.ActionData action in command.Actions)
+            foreach(ActionData action in command.Actions)
             {
                 foreach(var pair in action)
                 {

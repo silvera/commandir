@@ -1,4 +1,4 @@
-namespace Commandir.New
+namespace Commandir
 {
     public class ActionTypeRegistry
     {

@@ -1,7 +1,7 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Commandir.New
+namespace Commandir
 {
     public static class ActionExtensions
     {
