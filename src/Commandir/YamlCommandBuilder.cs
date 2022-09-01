@@ -5,7 +5,7 @@ using YamlDotNet.RepresentationModel;
 
 namespace Commandir
 {
-    public class YamlCommandBuilder
+    public class YamlCommandBuilder : CommandBuilder
     {
         private static readonly YamlScalarNode NameKey = new YamlScalarNode("name");
         private static readonly YamlScalarNode DescriptionKey = new YamlScalarNode("description");
@@ -14,12 +14,25 @@ namespace Commandir
         private static readonly YamlScalarNode OptionsKey = new YamlScalarNode("options");
 
         private readonly TextReader _reader;
+
+        public YamlCommandBuilder()
+        {
+            string currentDirectory = Directory.GetCurrentDirectory(); 
+            string yamlFilePath = Path.Combine(currentDirectory, "Commandir.yaml");
+            if(!File.Exists(yamlFilePath))
+            {
+                throw new InvalidOperationException($"Directory `{currentDirectory} does not contain a Commandir.yaml file");
+            }
+            
+            _reader = new StreamReader(yamlFilePath);
+        }
+
         public YamlCommandBuilder(TextReader reader)
         {
             _reader = reader;
         }
 
-        public Command Build(Func<IHost, Task> commandHandler)
+        public override Command Build(Func<IHost, Task> commandHandler)
         {
             YamlStream stream = new YamlStream();
             stream.Load(_reader);

@@ -46,18 +46,8 @@ namespace Commandir
 
         private static CommandLineBuilder BuildCommandLine()
         {
-            // Check for existence of file in curent directory?
-            string currentDirectory = Directory.GetCurrentDirectory(); 
-            string yamlFilePath = Path.Combine(currentDirectory, "Commandir.yaml");
-            if(!File.Exists(yamlFilePath))
-            {
-                throw new InvalidOperationException($"Directory `{currentDirectory} does not contain a Commandir.yaml file");
-            }
-            
-            var yamlFileReader = new StreamReader(yamlFilePath);
-            var yamlCommandBuilder = new YamlCommandBuilder(yamlFileReader);
-
-            Command rootCommand = yamlCommandBuilder.Build(HandleAsync);
+            CommandBuilder commandBuilder = new YamlCommandBuilder();
+            Command rootCommand = commandBuilder.Build(HandleAsync);
             return new CommandLineBuilder(rootCommand);
         }
     }
