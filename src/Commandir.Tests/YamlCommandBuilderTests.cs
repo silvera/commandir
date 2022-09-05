@@ -1,5 +1,7 @@
 using Xunit;
 using Commandir;
+using System.CommandLine;
+using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -204,5 +206,82 @@ public class YamlCommandBuilderTests
         ";
 
         await AssertExceptionAsync(yaml, "Option is missing a valid `required` entry.");
+    }
+
+    [Fact]
+    public void Validate_Command()
+    {
+        const string yaml = @"---
+            description: Commands
+            commands:
+               - name: Command
+                 description: Command description.
+                 actions:
+                    - name: Action
+                      message: Message
+        ";
+
+        StringReader reader = new StringReader(yaml);
+        YamlCommandBuilder builder = new YamlCommandBuilder(reader);
+        Command rootCommand = builder.Build(host => Task.CompletedTask);
+        Assert.Equal("Commands", rootCommand.Description);
+        ActionCommand command = (ActionCommand)rootCommand.Subcommands.First();
+        Assert.Equal("Command", command.Name);
+        Assert.Equal("Command description.", command.Description);
+        ActionData action = command.Actions.First();
+        Assert.Equal("Action", action.Name);
+        Assert.Equal("Message", action["message"]);
+    }
+
+    [Fact]
+    public void Validate_CommandWithArgument()
+    {
+        const string yaml = @"---
+            description: Commands
+            commands:
+               - name: Command
+                 description: Command description.
+                 actions:
+                    - name: Action
+                      message: Message
+                 arguments:
+                    - name: Argument
+                      description: Argument description.
+        ";
+
+        StringReader reader = new StringReader(yaml);
+        YamlCommandBuilder builder = new YamlCommandBuilder(reader);
+        Command rootCommand = builder.Build(host => Task.CompletedTask);
+        ActionCommand command = (ActionCommand)rootCommand.Subcommands.First();
+        Argument argument = command.Arguments.First();
+        Assert.Equal("Argument", argument.Name);
+        Assert.Equal("Argument description.", argument.Description);
+    }
+
+    [Fact]
+    public void Validate_CommandWithOption()
+    {
+        const string yaml = @"---
+            description: Commands
+            commands:
+               - name: Command
+                 description: Command description.
+                 actions:
+                    - name: Action
+                      message: Message
+                 options:
+                    - name: Option
+                      description: Option description.
+                      required: true
+        ";
+
+        StringReader reader = new StringReader(yaml);
+        YamlCommandBuilder builder = new YamlCommandBuilder(reader);
+        Command rootCommand = builder.Build(host => Task.CompletedTask);
+        ActionCommand command = (ActionCommand)rootCommand.Subcommands.First();
+        Option option = command.Options.First();
+        Assert.Equal("Option", option.Name);
+        Assert.Equal("Option description.", option.Description);
+        Assert.True(option.IsRequired);
     }
 }
