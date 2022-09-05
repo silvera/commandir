@@ -1,31 +1,61 @@
-using Microsoft.Extensions.Hosting;
 using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
+using Microsoft.Extensions.Hosting;
 using YamlDotNet.RepresentationModel;
 
 namespace Commandir
 {
+    public class YamlException : Exception
+    {
+        public YamlException(string message)
+            : base(message)
+        {
+        }
+
+        public YamlException(string message, Exception exception)
+            : base(message, exception)
+        {
+
+        }
+    }
+
+    public static class YamlExtensions
+    {
+        public static TNode? Cast<TNode>(this YamlNode node) where TNode: YamlNode
+        {
+            return node as TNode;
+        }
+
+        public static TNode? GetChildNode<TNode>(this YamlMappingNode node, YamlScalarNode keyNode) where TNode: YamlNode
+        {
+            if(!node.Children.TryGetValue(keyNode, out YamlNode? childNode))
+                return null;
+
+            return childNode.Cast<TNode>();
+        }
+
+        public static string? GetChildNodeValue(this YamlMappingNode node, YamlScalarNode keyNode)
+        {
+            YamlScalarNode? scalarNode = node.GetChildNode<YamlScalarNode>(keyNode);
+            if(scalarNode == null)
+                return null;
+
+            return scalarNode.Value;
+        }
+    }
+
     public class YamlCommandBuilder : CommandBuilder
     {
         private static readonly YamlScalarNode NameKey = new YamlScalarNode("name");
         private static readonly YamlScalarNode DescriptionKey = new YamlScalarNode("description");
+        private static readonly YamlScalarNode CommandsKey = new YamlScalarNode("commands");
         private static readonly YamlScalarNode ActionsKey = new YamlScalarNode("actions");
         private static readonly YamlScalarNode ArgumentsKey = new YamlScalarNode("arguments");
         private static readonly YamlScalarNode OptionsKey = new YamlScalarNode("options");
+        private static readonly YamlScalarNode RequiredKey = new YamlScalarNode("required");
+
 
         private readonly TextReader _reader;
-
-        public YamlCommandBuilder()
-        {
-            string currentDirectory = Directory.GetCurrentDirectory(); 
-            string yamlFilePath = Path.Combine(currentDirectory, "Commandir.yaml");
-            if(!File.Exists(yamlFilePath))
-            {
-                throw new InvalidOperationException($"Directory `{currentDirectory} does not contain a Commandir.yaml file");
-            }
-            
-            _reader = new StreamReader(yamlFilePath);
-        }
 
         public YamlCommandBuilder(TextReader reader)
         {
@@ -35,138 +65,121 @@ namespace Commandir
         public override Command Build(Func<IHost, Task> commandHandler)
         {
             YamlStream stream = new YamlStream();
-            stream.Load(_reader);
+            try
+            {
+                stream.Load(_reader);
+            }
+            catch(Exception e)
+            {
+                throw new YamlException("Failed to load YamlStream", e);
+            }
 
             // TODO: Validate document
-            YamlMappingNode? rootNode = stream.Documents[0].RootNode as YamlMappingNode;
+            YamlMappingNode? rootNode = stream.Documents[0].RootNode.Cast<YamlMappingNode>();
             if(rootNode == null)
-                throw new Exception();
+                throw new YamlException("Top-level must be a dictionary.");
 
-            YamlNode? node = null;
-            YamlScalarNode DescriptionKey = new YamlScalarNode("description");
-            if(!rootNode.Children.TryGetValue(DescriptionKey, out node))
-                throw new Exception();
-
-            string rootDescription = ((YamlScalarNode)node).Value!;
+            string? rootDescription = rootNode.GetChildNodeValue(DescriptionKey);
             if(string.IsNullOrWhiteSpace(rootDescription))
-                throw new Exception();
+                throw new YamlException("Top-level dictionary is missing a `description` entry.");
+
+            YamlSequenceNode? commandsNode = rootNode.GetChildNode<YamlSequenceNode>(CommandsKey);
+            if(commandsNode == null)
+                throw new YamlException("Top-level dictionary is missing a `commands` list.");
 
             Command rootCommand = new RootCommand(rootDescription);
             
-            YamlScalarNode CommandsKey = new YamlScalarNode("commands");
-            if(!rootNode.Children.TryGetValue(CommandsKey, out node))
-                throw new Exception();
-            
-            YamlSequenceNode commandsNode = (YamlSequenceNode)node;
             foreach(YamlMappingNode commandNode in commandsNode)
             {
-                // TODO: Extract Scalar
-                if(!(commandNode[NameKey] is YamlScalarNode commandNameNode))
-                    throw new Exception();
-               
-                string? commandName = commandNameNode.Value;
+                string? commandName = commandNode.GetChildNodeValue(NameKey);
                 if(string.IsNullOrWhiteSpace(commandName))
-                    throw new Exception();
+                    throw new YamlException("Command is missing a `name` entry.");
 
-                if(!(commandNode[DescriptionKey] is YamlScalarNode commandDescriptionNode))
-                    throw new Exception();
-               
-                string? commandDescription = commandDescriptionNode.Value;
+                string? commandDescription = commandNode.GetChildNodeValue(DescriptionKey);
                 if(string.IsNullOrWhiteSpace(commandDescription))
-                    throw new Exception();
+                    throw new YamlException("Command is missing a `description` entry.");
 
-                if(!(commandNode[ActionsKey] is YamlSequenceNode actionsListNode))
-                    throw new Exception();
-                
+                YamlSequenceNode? actionsNode = commandNode.GetChildNode<YamlSequenceNode>(ActionsKey);
+                if(actionsNode == null)
+                    throw new YamlException("Command is missing an `actions` list.");
+
                 ActionCommand command = new ActionCommand(commandName, commandDescription);
                 command.Handler = CommandHandler.Create<IHost>(commandHandler);                
                 
-                foreach(YamlMappingNode actionNode in actionsListNode)
+                foreach(YamlMappingNode actionNode in actionsNode)
                 {
-                    // Name
-                    if(!(actionNode[NameKey] is YamlScalarNode actionNameNode))
-                        throw new Exception();
-
-                    string? actionName = actionNameNode.Value;
+                    string? actionName = actionNode.GetChildNodeValue(NameKey);
                     if(string.IsNullOrWhiteSpace(actionName))
-                        throw new Exception();
+                        throw new YamlException("Action is missing a `name` entry.");
 
+                    // Add all key/scalar value pairs to the ActionData
                     ActionData action = new ActionData(actionName);
                     foreach(var pair in actionNode)
                     {
-                        if(!(pair.Key is YamlScalarNode keyNode))
-                            throw new Exception();
-                    
-                        string? key = keyNode.Value;
-                        if(string.IsNullOrWhiteSpace(key))
-                            throw new Exception();
+                        // Keys are always scalar values.
+                        YamlScalarNode actionKeyNode = pair.Key.Cast<YamlScalarNode>()!;
+                        
+                        // Keys always have a non-null value.
+                        string actionKey = actionKeyNode.Value!;
 
-                        // Only support scalar values for now.
-                        if(!(pair.Value is YamlScalarNode valueNode))
-                            throw new Exception();
-
-                        string? value = valueNode.Value;
-                        if(string.IsNullOrWhiteSpace(value))
-                            throw new Exception();
-
-                        action.Add(key, value);
+                        string? actionValue = actionNode.GetChildNodeValue(actionKeyNode);
+                        
+                        // Permit null/empty string values.
+                        action[actionKey] = actionValue;
                     }
 
                     command.AddAction(action);
                 }
 
-                if(commandNode[ArgumentsKey] is YamlSequenceNode argumentsListNode)
+                // Arguments are optional.
+                YamlSequenceNode? argumentsNode = commandNode.GetChildNode<YamlSequenceNode>(ArgumentsKey);
+                if(argumentsNode != null)
                 {
-                    foreach(YamlMappingNode argumentsNode in argumentsListNode)
+                    foreach(YamlMappingNode argumentNode in argumentsNode)
                     {
-                        // Name
-                        if(!(argumentsNode[NameKey] is YamlScalarNode argumentNameNode))
-                            throw new Exception();
-
-                        string? argumentName = argumentNameNode.Value;
+                        string? argumentName = argumentNode.GetChildNodeValue(NameKey);
                         if(string.IsNullOrWhiteSpace(argumentName))
-                            throw new Exception();
+                            throw new YamlException("Argument is missing a `name` entry.");
 
-                        // Description
-                        if(!(argumentsNode[NameKey] is YamlScalarNode argumentDescriptionNode))
-                            throw new Exception();
-
-                        string? argumentDescription = argumentDescriptionNode.Value;
+                        string? argumentDescription = argumentNode.GetChildNodeValue(DescriptionKey);
                         if(string.IsNullOrWhiteSpace(argumentDescription))
-                            throw new Exception();
+                            throw new YamlException("Argument is missing a `description` entry.");
 
+                        // TODO: Add support for argument types.
                         Argument argument = new Argument<string>(argumentName, argumentDescription);
                         command.AddArgument(argument);
                     }
                 }
 
-                if(commandNode[OptionsKey] is YamlSequenceNode optionsListNode)
+                // Options are optional.
+                YamlSequenceNode? optionsNode = commandNode.GetChildNode<YamlSequenceNode>(OptionsKey);
+                if(optionsNode != null)
                 {
-                    foreach(YamlMappingNode optionsNode in optionsListNode)
+                    foreach(YamlMappingNode optionNode in optionsNode)
                     {
-                        // Name
-                        if(!(optionsNode[NameKey] is YamlScalarNode optionNameNode))
-                            throw new Exception();
-
-                        string? optionName = optionNameNode.Value;
+                        string? optionName = optionNode.GetChildNodeValue(NameKey);
                         if(string.IsNullOrWhiteSpace(optionName))
-                            throw new Exception();
+                            throw new YamlException("Option is missing a `name` entry.");
 
-                        // Description
-                        if(!(optionsNode[NameKey] is YamlScalarNode optionDescriptionNode))
-                            throw new Exception();
-
-                        string? optionDescription = optionDescriptionNode.Value;
+                        string? optionDescription = optionNode.GetChildNodeValue(DescriptionKey);
                         if(string.IsNullOrWhiteSpace(optionDescription))
-                            throw new Exception();
+                            throw new YamlException("Option is missing a `description` entry.");
+
+                        bool isRequired = false;
+                        string? optionRequired = optionNode.GetChildNodeValue(RequiredKey);
+                        if(!string.IsNullOrWhiteSpace(optionRequired))
+                        {
+                            if(!bool.TryParse(optionRequired, out isRequired))
+                                throw new YamlException("Option is missing a valid `required` entry.");
+                        }
 
                         Option option = new Option<string>($"--{optionName}", optionDescription);
-                        option.IsRequired = true;
+                        option.IsRequired = isRequired;
                         command.AddOption(option);
                     }
                 }
 
-                rootCommand.AddCommand(command);                
+                rootCommand.AddCommand(command);
             }
 
             return rootCommand;

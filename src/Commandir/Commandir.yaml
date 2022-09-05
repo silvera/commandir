@@ -6,7 +6,7 @@ commands:
       actions:
         - name: RunAction
           shell: bash
-          run: echo "${{greeting}} ${{name}}" 
+          run: echo "${{name}} ${{greeting}}" 
       arguments:
         - name: greeting
           type: string
@@ -24,8 +24,5 @@ commands:
         - name: message
           description: The messsage
           type: string
-      options:
-         - name: unused
-           description: unused
 
        

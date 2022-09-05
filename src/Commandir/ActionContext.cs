@@ -1,12 +1,13 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Commandir
 {
     public interface IActionContextProvider
     {
-        IReadOnlyList<ActionData> GetActions();
+        IReadOnlyList<Action> GetActions();
         IReadOnlyDictionary<string, object?> GetParameters();
         CancellationToken GetCancellationToken();
     }
@@ -14,20 +15,44 @@ namespace Commandir
     public class InvocationContextActionContextProvider : IActionContextProvider
     {
         private readonly InvocationContext _invocationContext;
-        public InvocationContextActionContextProvider(InvocationContext invocationContext)
+        private readonly IServiceProvider _serviceProvider;
+        public InvocationContextActionContextProvider(InvocationContext invocationContext, IServiceProvider serviceProvider)
         {
-            _invocationContext = invocationContext; 
+            _invocationContext = invocationContext;
+            _serviceProvider = serviceProvider; 
         }
 
         public CancellationToken GetCancellationToken() => _invocationContext.GetCancellationToken();
 
-        public IReadOnlyList<ActionData> GetActions()
+        public IReadOnlyList<Action> GetActions()
         {
             ActionCommand? command = _invocationContext.ParseResult.CommandResult.Command as ActionCommand;
             if(command == null)
                 throw new Exception();
 
-            return command.Actions;
+            List<Type> actionTypes = new List<Type>();
+            foreach(ActionData actionData in command.Actions)
+            {
+                // Need the full type name (w/ namespace):
+                string actionTypeName = "Commandir." + actionData.Name;
+                Type? actionType = Type.GetType(actionTypeName);
+                if(actionType == null)
+                    throw new Exception();
+
+                actionTypes.Add(actionType);
+            }
+            
+            List<Action> actions = new List<Action>();
+            foreach(Type actionType in actionTypes)
+            {
+                Action? action = _serviceProvider.GetRequiredService(actionType) as Action;
+                if(action == null)
+                    throw new Exception($"Failed to find Action for type `{actionType}`");
+
+                actions.Add(action);
+            }
+
+            return actions;
         }
 
         public IReadOnlyDictionary<string, object?> GetParameters()
