@@ -4,7 +4,6 @@ using System.CommandLine.Hosting;
 using System.CommandLine.Parsing;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using FluentResults;
 
 namespace Commandir
 {
