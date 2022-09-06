@@ -1,5 +1,5 @@
-using Xunit;
 using System.IO;
+using Xunit;
 
 namespace Commandir.Tests;
 
@@ -128,7 +128,6 @@ public class YamlCommandDataBuilderTests
                     - name: action
                  arguments:
                     - name: argument name.
-                 
         ";
 
         AssertException(yaml, "Argument is missing a `description` entry.");
