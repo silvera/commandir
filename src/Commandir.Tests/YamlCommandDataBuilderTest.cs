@@ -13,6 +13,14 @@ public class YamlCommandDataBuilderTests
         Assert.Equal(message, ex.Message);
     }
 
+    private void AssertOK(string yaml)
+    {
+        var reader = new StringReader(yaml);
+        var builder = new YamlCommandDataBuilder(reader);
+        var ex = Record.Exception(() =>  { builder.Build(); });
+        Assert.Null(ex);
+    }
+
     [Fact]
     public void Document_IsDictionary()
     {
@@ -81,6 +89,41 @@ public class YamlCommandDataBuilderTests
         ";
 
         AssertException(yaml, "Command is missing an `actions` list.");
+    }
+
+    [Fact]
+    public void Command_HasArgument()
+    {
+        const string yaml = @"---
+            description: Commands List
+            commands:
+               - name: command
+                 description: command
+                 actions:
+                    - name: action
+                 arguments:
+                    - name: argument
+                      description: argument
+        ";
+        AssertOK(yaml);
+    }
+
+    [Fact]
+    public void Command_HasOption()
+    {
+        const string yaml = @"---
+            description: Commands List
+            commands:
+               - name: command
+                 description: command
+                 actions:
+                    - name: action
+                 options:
+                    - name: option
+                      description: option
+                      required: false
+        ";
+        AssertOK(yaml);
     }
 
     [Fact]
