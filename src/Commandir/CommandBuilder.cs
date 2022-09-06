@@ -3,12 +3,7 @@ using System.CommandLine;
 
 namespace Commandir
 {
-    public abstract class CommandBuilder
-    {
-        public abstract Command Build(Func<IHost, Task> handler);
-    }
-
-    public class CommandDataBuilder
+    public class CommandBuilder : IBuilder<Command>
     {
         private static void AddCommand(CommandData commandData, ActionCommand parent)
         {
@@ -40,15 +35,21 @@ namespace Commandir
             parent.AddCommand(command);
         }
 
-        public Command Build(CommandData rootCommandData)
+        private readonly CommandData _rootCommandData;
+        public CommandBuilder(CommandData rootCommandData)
+        {
+            _rootCommandData = rootCommandData;
+        }
+
+        public Command Build()
         {
             ActionCommand rootCommmandHolder = new ActionCommand("unused", "unused");
-            foreach(CommandData commandData in rootCommandData.Commands)
+            foreach(CommandData commandData in _rootCommandData.Commands)
             {
                 AddCommand(commandData, rootCommmandHolder);
             }
 
-            RootCommand rootCommand = new RootCommand(rootCommandData.Description);
+            RootCommand rootCommand = new RootCommand(_rootCommandData.Description);
             foreach(Command command in rootCommmandHolder.Subcommands)
             {
                 rootCommand.AddCommand(command);

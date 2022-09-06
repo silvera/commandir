@@ -51,7 +51,7 @@ namespace Commandir
                 throw new FileNotFoundException($"No Commandir.yaml file found in {currentDirectory}", "Commandir.yaml");
 
             var yamlFileReader = new StreamReader(yamlFilePath);
-            CommandBuilder commandBuilder = new YamlCommandBuilder(yamlFileReader);
+            YamlCommandBuilder commandBuilder = new YamlCommandBuilder(yamlFileReader);
             Command command = commandBuilder.Build(HandleAsync);
             return new CommandLineBuilder(command);
         }

@@ -44,7 +44,7 @@ namespace Commandir
         }
     }
 
-    public class YamlCommandBuilder : CommandBuilder
+    public class YamlCommandBuilder
     {
         private static readonly YamlScalarNode NameKey = new YamlScalarNode("name");
         private static readonly YamlScalarNode DescriptionKey = new YamlScalarNode("description");
@@ -62,7 +62,7 @@ namespace Commandir
             _reader = reader;
         }
 
-        public override Command Build(Func<IHost, Task> commandHandler)
+        public Command Build(Func<IHost, Task> commandHandler)
         {
             YamlStream stream = new YamlStream();
             try
