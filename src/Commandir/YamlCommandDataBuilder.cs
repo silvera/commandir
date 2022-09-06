@@ -1,6 +1,3 @@
-using System.CommandLine;
-using System.CommandLine.NamingConventionBinder;
-using Microsoft.Extensions.Hosting;
 using YamlDotNet.RepresentationModel;
 
 namespace Commandir
@@ -44,7 +41,7 @@ namespace Commandir
         }
     }
 
-    public class YamlCommandBuilder
+    public class YamlCommandDataBuilder : IBuilder<CommandData>
     {
         private static readonly YamlScalarNode NameKey = new YamlScalarNode("name");
         private static readonly YamlScalarNode DescriptionKey = new YamlScalarNode("description");
@@ -57,12 +54,12 @@ namespace Commandir
 
         private readonly TextReader _reader;
 
-        public YamlCommandBuilder(TextReader reader)
+        public YamlCommandDataBuilder(TextReader reader)
         {
             _reader = reader;
         }
 
-        public Command Build(Func<IHost, Task> commandHandler)
+        public CommandData Build()
         {
             YamlStream stream = new YamlStream();
             try
@@ -87,7 +84,7 @@ namespace Commandir
             if(commandsNode == null)
                 throw new YamlException("Top-level dictionary is missing a `commands` list.");
 
-            Command rootCommand = new RootCommand(rootDescription);
+            CommandData rootCommand = new CommandData("unused", rootDescription);
             
             foreach(YamlMappingNode commandNode in commandsNode)
             {
@@ -103,8 +100,7 @@ namespace Commandir
                 if(actionsNode == null)
                     throw new YamlException("Command is missing an `actions` list.");
 
-                ActionCommand command = new ActionCommand(commandName, commandDescription);
-                command.Handler = CommandHandler.Create<IHost>(commandHandler);                
+                CommandData command = new CommandData(commandName, commandDescription);
                 
                 foreach(YamlMappingNode actionNode in actionsNode)
                 {
@@ -146,7 +142,7 @@ namespace Commandir
                             throw new YamlException("Argument is missing a `description` entry.");
 
                         // TODO: Add support for argument types.
-                        Argument argument = new Argument<string>(argumentName, argumentDescription);
+                        ArgumentData argument = new ArgumentData(argumentName, argumentDescription);
                         command.AddArgument(argument);
                     }
                 }
@@ -173,8 +169,7 @@ namespace Commandir
                                 throw new YamlException("Option is missing a valid `required` entry.");
                         }
 
-                        Option option = new Option<string>($"--{optionName}", optionDescription);
-                        option.IsRequired = isRequired;
+                        OptionData option = new OptionData($"optionName", optionDescription, isRequired);
                         command.AddOption(option);
                     }
                 }

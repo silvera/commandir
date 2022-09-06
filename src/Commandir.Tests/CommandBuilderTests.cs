@@ -1,7 +1,7 @@
-using Xunit;
-using Commandir;
 using System.CommandLine;
 using System.Linq;
+using System.Threading.Tasks;
+using Xunit;
 
 namespace Commandir.Tests
 {
@@ -10,6 +10,7 @@ namespace Commandir.Tests
         private static CommandData CreateRootCommandData() => new CommandData("root", "root");
         private static CommandData CreateSubCommandData() => new CommandData("subcommand", "subcommand");
         private static CommandData CreateSubSubCommandData() => new CommandData("subsubcommand", "subsubcommand");
+        private CommandBuilder CreateCommandBuilder(CommandData rootCommandData) => new CommandBuilder(rootCommandData, host => Task.CompletedTask);
 
         [Fact]
         public void Builds_CommandTree()
@@ -21,7 +22,7 @@ namespace Commandir.Tests
             subCommandData.AddCommand(subSubCommandData);
             rootCommandData.AddCommand(subCommandData);
 
-            Command rootCommand = new CommandDataBuilder().Build(rootCommandData);
+            Command rootCommand = CreateCommandBuilder(rootCommandData).Build();
             Assert.NotNull(rootCommand);
             Assert.Equal(rootCommandData.Description,rootCommand.Description);
 
@@ -47,7 +48,7 @@ namespace Commandir.Tests
             subCommandData.AddArgument(argumentData);
             rootCommandData.AddCommand(subCommandData);
 
-            Command rootCommand = new CommandDataBuilder().Build(rootCommandData);
+            Command rootCommand = CreateCommandBuilder(rootCommandData).Build();
 
             Command subCommand = rootCommand.Subcommands.First();
             Argument argument = subCommand.Arguments.First();
@@ -64,7 +65,7 @@ namespace Commandir.Tests
             subCommandData.AddOption(optionData);
             rootCommandData.AddCommand(subCommandData);
 
-            Command rootCommand = new CommandDataBuilder().Build(rootCommandData);
+            Command rootCommand = CreateCommandBuilder(rootCommandData).Build();
 
             Command subCommand = rootCommand.Subcommands.First();
             Option option = subCommand.Options.First();
@@ -81,7 +82,7 @@ namespace Commandir.Tests
             subCommandData.AddAction(actionData);
             rootCommandData.AddCommand(subCommandData);
 
-            Command rootCommand = new CommandDataBuilder().Build(rootCommandData);
+            Command rootCommand = CreateCommandBuilder(rootCommandData).Build();
 
             ActionCommand subCommand = (ActionCommand)rootCommand.Subcommands.First();
             ActionData action = subCommand.Actions.First();
