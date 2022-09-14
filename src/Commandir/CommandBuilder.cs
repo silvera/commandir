@@ -4,62 +4,77 @@ using System.CommandLine.NamingConventionBinder;
 
 namespace Commandir
 {
-    public class CommandBuilder : IBuilder<Command>
+    public class CommandLineCommand : Command
     {
-        private readonly CommandData _rootCommandData;
-        private readonly Func<IHost, Task> _commandHandler;
-        public CommandBuilder(CommandData rootCommandData, Func<IHost, Task> commandHandler)
+        public Core.CommandData CommandData { get; set; }
+
+        public CommandLineCommand(Core.CommandData commandData)
+            : base(commandData.Name!, commandData.Description)
         {
-            _rootCommandData = rootCommandData;
+            CommandData = commandData;
+        }
+    }
+
+    public class CommandBuilder : IBuilder<CommandLineCommand>
+    {
+        private readonly Core.CommandData _rootData;
+        private readonly Func<IHost, Task> _commandHandler;
+        public CommandBuilder(Core.CommandData rootData, Func<IHost, Task> commandHandler)
+        {
+            _rootData = rootData;
             _commandHandler = commandHandler;
         }
 
-        public Command Build()
+        public CommandLineCommand Build()
         {
-            ActionCommand rootCommmandHolder = new ActionCommand("unused", "unused");
-            foreach(CommandData commandData in _rootCommandData.Commands)
-            {
-                AddCommand(commandData, rootCommmandHolder);
-            }
 
-            RootCommand rootCommand = new RootCommand(_rootCommandData.Description);
-            foreach(Command command in rootCommmandHolder.Subcommands)
+            // Ensure root Name and Type are set to prevent exceptions.
+            _rootData.Name = "Commandir";
+            _rootData.Type = "Commandir.Builtins.Console";
+
+            CommandLineCommand rootCommand = new CommandLineCommand(_rootData);
+            foreach(Core.CommandData subCommandData in _rootData.Commands)
             {
-                rootCommand.AddCommand(command);
+                AddCommand(subCommandData, rootCommand, _commandHandler);
             }
 
             return rootCommand;
         }
 
-        private void AddCommand(CommandData commandData, ActionCommand parent)
+        private static void AddCommand(Core.CommandData commandData, Command parentCommand, Func<IHost, Task> commandHandler)
         {
-            ActionCommand command = new ActionCommand(commandData.Name, commandData.Description);
-            command.Handler = CommandHandler.Create<IHost>(_commandHandler);
-            foreach(ArgumentData argumentData in commandData.Arguments)
+            if(string.IsNullOrWhiteSpace(commandData.Name))
+                throw new ArgumentNullException(nameof(Core.CommandData.Name));
+
+            if(string.IsNullOrWhiteSpace(commandData.Type))
+                throw new ArgumentNullException(nameof(Core.CommandData.Type));
+
+            CommandLineCommand command = new CommandLineCommand(commandData);
+            command.Handler = CommandHandler.Create<IHost>(commandHandler);
+            parentCommand.AddCommand(command);
+
+            foreach(Core.ArgumentData argumentData in commandData.Arguments)
             {
-                command.AddArgument(new Argument<string>(argumentData.Name, argumentData.Description));
+                if(string.IsNullOrWhiteSpace(commandData.Name))
+                    throw new ArgumentNullException(nameof(Core.ArgumentData.Name));
+
+                Argument argument = new Argument<string>(argumentData.Name, argumentData.Description);
+                command.AddArgument(argument);
             }
 
-            foreach(OptionData optionData in commandData.Options)
+            foreach(Core.OptionData optionData in commandData.Options)
             {
-                Option<string> option = new Option<string>(optionData.Name, optionData.Description)
-                {
-                    IsRequired = optionData.IsRequired
-                };
+                 if(string.IsNullOrWhiteSpace(optionData.Name))
+                    throw new ArgumentNullException(nameof(Core.OptionData.Name));
+
+                Option option = new Option<string>(optionData.Name, optionData.Description) { IsRequired = false };
                 command.AddOption(option);
             }
 
-            foreach(ActionData actionData in commandData.Actions)
+            foreach(Core.CommandData subCommandData in commandData.Commands)
             {
-                command.AddAction(actionData);
+                AddCommand(subCommandData, command, commandHandler);
             }
-
-            foreach(CommandData subCommandData in commandData.Commands)
-            {
-                AddCommand(subCommandData, command);
-            }
-
-            parent.AddCommand(command);
-        }
+        }       
     }
 }

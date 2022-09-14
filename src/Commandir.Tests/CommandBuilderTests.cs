@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -7,33 +6,33 @@ namespace Commandir.Tests
 {
     public class CommandBuilderTests
     {
-        private static CommandData CreateRootCommandData() => new CommandData("root", "root");
-        private static CommandData CreateSubCommandData() => new CommandData("subcommand", "subcommand");
-        private static CommandData CreateSubSubCommandData() => new CommandData("subsubcommand", "subsubcommand");
-        private CommandBuilder CreateCommandBuilder(CommandData rootCommandData) => new CommandBuilder(rootCommandData, host => Task.CompletedTask);
+        private static Core.CommandData CreateRootCommandData() => new Core.CommandData() { Name = "root", Description = "root", Type = "Commandir.Builtins.Default" };
+        private static Core.CommandData CreateSubCommandData() => new Core.CommandData { Name = "subcommand", Description = "subcommand", Type = "Commandir.Builtins.Default" };
+        private static Core.CommandData CreateSubSubCommandData() => new Core.CommandData { Name = "subsubcommand", Description = "subsubcommand", Type = "Commandir.Builtins.Default" };
+        private CommandBuilder CreateCommandBuilder(Core.CommandData rootCommandData) => new CommandBuilder(rootCommandData, host => Task.CompletedTask);
 
         [Fact]
         public void Builds_CommandTree()
         {
-            CommandData rootCommandData = CreateRootCommandData();
-            CommandData subCommandData = CreateSubCommandData();    
-            CommandData subSubCommandData = CreateSubSubCommandData();
+            Core.CommandData rootCommandData = CreateRootCommandData();
+            Core.CommandData subCommandData = CreateSubCommandData();    
+            Core.CommandData subSubCommandData = CreateSubSubCommandData();
             
-            subCommandData.AddCommand(subSubCommandData);
-            rootCommandData.AddCommand(subCommandData);
+            subCommandData.Commands.Add(subSubCommandData);
+            rootCommandData.Commands.Add(subCommandData);
 
-            Command rootCommand = CreateCommandBuilder(rootCommandData).Build();
+            CommandLineCommand rootCommand = CreateCommandBuilder(rootCommandData).Build();
             Assert.NotNull(rootCommand);
             Assert.Equal(rootCommandData.Description,rootCommand.Description);
 
             Assert.Equal(1, rootCommand.Subcommands.Count);
-            Command subCommand = rootCommand.Subcommands.First();
+            CommandLineCommand subCommand = (CommandLineCommand)rootCommand.Subcommands[0];
             Assert.NotNull(subCommand);
             Assert.Equal(subCommandData.Name, subCommand.Name);
             Assert.Equal(subCommandData.Description, subCommand.Description);
 
             Assert.Equal(1, subCommand.Subcommands.Count);
-            Command subSubCommand = subCommand.Subcommands.First();
+            CommandLineCommand subSubCommand = (CommandLineCommand)subCommand.Subcommands[0];
             Assert.NotNull(subSubCommand);
             Assert.Equal(subSubCommandData.Name, subSubCommand.Name);
             Assert.Equal(subSubCommandData.Description, subSubCommand.Description);
@@ -42,16 +41,16 @@ namespace Commandir.Tests
         [Fact]
         public void Adds_Argument()
         {   
-            CommandData rootCommandData = CreateRootCommandData();
-            CommandData subCommandData = CreateSubCommandData();
-            ArgumentData argumentData = new ArgumentData("argument", "argument"); 
-            subCommandData.AddArgument(argumentData);
-            rootCommandData.AddCommand(subCommandData);
+            Core.CommandData rootCommandData = CreateRootCommandData();
+            Core.CommandData subCommandData = CreateSubCommandData();
+            Core.ArgumentData argumentData = new Core.ArgumentData{ Name = "argument", Description = "argument" }; 
+            subCommandData.Arguments.Add(argumentData);
+            rootCommandData.Commands.Add(subCommandData);
 
-            Command rootCommand = CreateCommandBuilder(rootCommandData).Build();
+            CommandLineCommand rootCommand = CreateCommandBuilder(rootCommandData).Build();
 
-            Command subCommand = rootCommand.Subcommands.First();
-            Argument argument = subCommand.Arguments.First();
+            CommandLineCommand subCommand = (CommandLineCommand)rootCommand.Subcommands[0];
+            Argument argument = subCommand.Arguments[0];
             Assert.Equal(argumentData.Name, argument.Name);
             Assert.Equal(argumentData.Description, argument.Description);
         }
@@ -59,34 +58,18 @@ namespace Commandir.Tests
         [Fact]
         public void Adds_Option()
         {   
-            CommandData rootCommandData = CreateRootCommandData();
-            CommandData subCommandData = CreateSubCommandData();
-            OptionData optionData = new OptionData("option", "option", true);
-            subCommandData.AddOption(optionData);
-            rootCommandData.AddCommand(subCommandData);
+            Core.CommandData rootCommandData = CreateRootCommandData();
+            Core.CommandData subCommandData = CreateSubCommandData();
+            Core.OptionData optionData = new Core.OptionData { Name = "option", Description = "option" };
+            subCommandData.Options.Add(optionData);
+            rootCommandData.Commands.Add(subCommandData);
 
-            Command rootCommand = CreateCommandBuilder(rootCommandData).Build();
+            CommandLineCommand rootCommand = CreateCommandBuilder(rootCommandData).Build();
 
-            Command subCommand = rootCommand.Subcommands.First();
-            Option option = subCommand.Options.First();
+            CommandLineCommand subCommand = (CommandLineCommand)rootCommand.Subcommands[0];
+            Option option = subCommand.Options[0];
             Assert.Equal(optionData.Name, option.Name);
             Assert.Equal(optionData.Description, option.Description);
-        }
-
-        [Fact]
-        public void Adds_Action()
-        {   
-            CommandData rootCommandData = CreateRootCommandData();
-            CommandData subCommandData = CreateSubCommandData();
-            ActionData actionData = new ActionData("action");
-            subCommandData.AddAction(actionData);
-            rootCommandData.AddCommand(subCommandData);
-
-            Command rootCommand = CreateCommandBuilder(rootCommandData).Build();
-
-            ActionCommand subCommand = (ActionCommand)rootCommand.Subcommands.First();
-            ActionData action = subCommand.Actions.First();
-            Assert.Equal(actionData.Name, action.Name);
         }
     }
 }
