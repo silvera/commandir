@@ -1,28 +1,14 @@
 ---
-description: Greeting Commands
+description: Sample Commands
 commands:
-    - name: greet
-      description: Greets the user
-      actions:
-        - name: RunAction
-          shell: bash
-          run: echo "${{name}} ${{greeting}}" 
-      arguments:
-        - name: greeting
-          type: string
-          description: The greeting.
-      options:
-        - name: name
-          description: The name.
-    - name: echo
-      description: Echoes the message
-      actions: 
-        - name: RunAction
-          shell: bash
-          run: echo ${{message}}
-      arguments:
+   - name: echo 
+     description: Echoes the message
+     type: Commandir.Builtins.Console
+     parameters: 
+        shell: bash
+        run: echo ${{message}}
+     arguments:
         - name: message
           description: The messsage
-          type: string
-
+          type:   
        
