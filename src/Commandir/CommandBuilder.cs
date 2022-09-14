@@ -27,11 +27,9 @@ namespace Commandir
 
         public CommandLineCommand Build()
         {
-
-            // Ensure root Name and Type are set to prevent exceptions.
+            // Set root Name to avoid exceptions.
             _rootData.Name = "Commandir";
-            _rootData.Type = "Commandir.Builtins.Console";
-
+            
             CommandLineCommand rootCommand = new CommandLineCommand(_rootData);
             foreach(Core.CommandData subCommandData in _rootData.Commands)
             {
@@ -45,9 +43,6 @@ namespace Commandir
         {
             if(string.IsNullOrWhiteSpace(commandData.Name))
                 throw new ArgumentNullException(nameof(Core.CommandData.Name));
-
-            if(string.IsNullOrWhiteSpace(commandData.Type))
-                throw new ArgumentNullException(nameof(Core.CommandData.Type));
 
             CommandLineCommand command = new CommandLineCommand(commandData);
             command.Handler = CommandHandler.Create<IHost>(commandHandler);

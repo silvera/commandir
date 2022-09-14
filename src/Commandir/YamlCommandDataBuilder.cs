@@ -18,6 +18,12 @@ internal sealed class YamlCommandDataBuilder : IBuilder<Core.CommandData>
 
     public Core.CommandData Build()
     { 
-        return _deserializer.Deserialize<Core.CommandData>(_yaml);  
+        Core.CommandData rootData = _deserializer.Deserialize<Core.CommandData>(_yaml);
+
+        // The yaml file is not required to contain an entry for the root command's name.
+        if(string.IsNullOrWhiteSpace(rootData.Name)) 
+            rootData.Name = "Commandir";
+
+        return rootData; 
     }
 }
