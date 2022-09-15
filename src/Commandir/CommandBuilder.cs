@@ -62,7 +62,7 @@ namespace Commandir
                  if(string.IsNullOrWhiteSpace(optionData.Name))
                     throw new ArgumentNullException(nameof(Core.OptionData.Name));
 
-                Option option = new Option<string>(optionData.Name, optionData.Description) { IsRequired = false };
+                Option option = new Option<string>($"--{optionData.Name}", optionData.Description) { IsRequired = optionData.Required };
                 command.AddOption(option);
             }
 

@@ -2,13 +2,16 @@
 description: Sample Commands
 commands:
    - name: echo 
-     description: Echoes the message
+     description: Echoes the message.
      type: Commandir.Builtins.Console
-     parameters: 
-        shell: bash
-        run: echo ${{message}}
+     parameters:
+        message: "Hello World!"
+        prefix: "Default: "
      arguments:
         - name: message
-          description: The messsage
-          type:   
+          description: The messsage.
+     options:
+        - name: prefix
+          description: The prefix (optional).
+          required: false
        

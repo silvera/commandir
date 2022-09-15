@@ -3,7 +3,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace Commandir;
 
-internal sealed class YamlCommandDataBuilder : IBuilder<Core.CommandData>
+public sealed class YamlCommandDataBuilder : IBuilder<Core.CommandData>
 {
     private readonly string _yaml;
     private readonly IDeserializer _deserializer;
