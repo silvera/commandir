@@ -1,6 +1,8 @@
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
+using Commandir.Core;
+
 namespace Commandir;
 
 public sealed class YamlCommandDataBuilder : IBuilder<Core.CommandData>
@@ -16,9 +18,9 @@ public sealed class YamlCommandDataBuilder : IBuilder<Core.CommandData>
             .Build();
     }
 
-    public Core.CommandData Build()
+    public CommandData Build()
     { 
-        Core.CommandData rootData = _deserializer.Deserialize<Core.CommandData>(_yaml);
+        CommandData rootData = _deserializer.Deserialize<CommandData>(_yaml);
 
         // The yaml file is not required to contain an entry for the root command's name.
         if(string.IsNullOrWhiteSpace(rootData.Name)) 

@@ -4,6 +4,8 @@ using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
 using System.CommandLine.Parsing;
 
+using Commandir.Core;
+
 namespace Commandir
 {
     class Program

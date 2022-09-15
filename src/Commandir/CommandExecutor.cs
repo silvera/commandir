@@ -1,10 +1,11 @@
 namespace Commandir;
 
-using Commandir.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using System.CommandLine.Invocation;
 using System.Reflection;
+
+using Commandir.Core;
 
 public static class CommandExecutor
 {
