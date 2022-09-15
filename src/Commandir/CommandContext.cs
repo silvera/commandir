@@ -3,6 +3,9 @@ namespace Commandir;
 using Microsoft.Extensions.DependencyInjection;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+
+using Commandir.Core;
+
 public sealed class CommandContext : ICommandContext
 {
     public IServiceProvider Services { get; }
