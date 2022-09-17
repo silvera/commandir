@@ -2,6 +2,7 @@ namespace Commandir;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
 
@@ -33,7 +34,30 @@ public static class CommandExecutor
         if(commandImpl == null)
             throw new Exception($"Failed to create an instance of the command type `{commandType}`");
 
-        ICommandContext commandContext = new CommandContext(host.Services);
+        Dictionary<string, object?> parameters = new Dictionary<string, object?>();
+
+        // Add command parameters.
+        foreach(var parameterPair in command.CommandData.Parameters)
+        {
+            parameters[parameterPair.Key] = parameterPair.Value;
+        }
+
+        // Add command line parameters after command parameters so they can override the parameters.
+        foreach(Argument argument in command.Arguments)
+        {
+            object? value = invocationContext.ParseResult.GetValueForArgument(argument);
+            if(value != null)
+                parameters[argument.Name] = value;
+        }
+
+        foreach(Option option in command.Options)
+        {
+            object? value = invocationContext.ParseResult.GetValueForOption(option);
+            if(value != null)
+            parameters[option.Name] = value;  
+        }
+
+        ICommandContext commandContext = new CommandContext(host.Services, parameters);
         
         try
         {
