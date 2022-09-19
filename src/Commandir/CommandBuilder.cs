@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
-
+using Serilog;
 using Commandir.Core;
 
 namespace Commandir
@@ -21,10 +22,12 @@ namespace Commandir
     {
         private readonly CommandData _rootData;
         private readonly Func<IHost, Task> _commandHandler;
-        public CommandBuilder(CommandData rootData, Func<IHost, Task> commandHandler)
+        private readonly Microsoft.Extensions.Logging.ILogger _logger;
+        public CommandBuilder(CommandData rootData, Func<IHost, Task> commandHandler, ILoggerFactory loggerFactory)
         {
             _rootData = rootData;
             _commandHandler = commandHandler;
+            _logger = loggerFactory.CreateLogger<CommandBuilder>();
         }
 
         public CommandLineCommand Build()
@@ -41,7 +44,7 @@ namespace Commandir
             return rootCommand;
         }
 
-        private static void AddCommand(CommandData commandData, Command parentCommand, Func<IHost, Task> commandHandler)
+        private void AddCommand(CommandData commandData, Command parentCommand, Func<IHost, Task> commandHandler)
         {
             if(string.IsNullOrWhiteSpace(commandData.Name))
                 throw new ArgumentNullException(nameof(CommandData.Name));
@@ -68,6 +71,9 @@ namespace Commandir
                 command.AddOption(option);
             }
 
+            string arguments = string.Join(",", commandData.Arguments.Select(i => i.Name));
+            string options = string.Join(",", commandData.Options.Select(i => i.Name));
+            _logger.LogInformation("Reading Definition: {Name} Arguments: [{Arguments}] Options: [{Options}]", commandData.Name, arguments, options);
             foreach(CommandData subCommandData in commandData.Commands)
             {
                 AddCommand(subCommandData, command, commandHandler);

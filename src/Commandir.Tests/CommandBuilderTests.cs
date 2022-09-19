@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.Threading.Tasks;
 using Xunit;
@@ -9,8 +10,13 @@ namespace Commandir.Tests
         private static Core.CommandData CreateRootCommandData() => new Core.CommandData() { Name = "root", Description = "root", Type = "Commandir.Builtins.Default" };
         private static Core.CommandData CreateSubCommandData() => new Core.CommandData { Name = "subcommand", Description = "subcommand", Type = "Commandir.Builtins.Default" };
         private static Core.CommandData CreateSubSubCommandData() => new Core.CommandData { Name = "subsubcommand", Description = "subsubcommand", Type = "Commandir.Builtins.Default" };
-        private CommandBuilder CreateCommandBuilder(Core.CommandData rootCommandData) => new CommandBuilder(rootCommandData, host => Task.CompletedTask);
-
+        
+        private CommandBuilder CreateCommandBuilder(Core.CommandData rootCommandData)
+        {
+            ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            return new CommandBuilder(rootCommandData, host => Task.CompletedTask, loggerFactory);
+        }
+        
         [Fact]
         public void Builds_CommandTree()
         {

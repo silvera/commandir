@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
 using System.CommandLine.Parsing;
@@ -11,16 +12,19 @@ namespace Commandir.Tests
         [Fact]
         public async Task Executes_Command()
         {   
+            ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+
             string yaml = @"---
                 commands:
                    - name: test
-                     type: Commandir.Builtins.Console
+                     type: Commandir.Builtins.Echo
                      parameters:
                         message: Test Message
             ";
 
+            CommandExecutor commandExecutor = new CommandExecutor(loggerFactory);
             Core.CommandData rootData = new YamlCommandDataBuilder(yaml).Build();
-            CommandLineCommand rootCommand = new CommandBuilder(rootData, CommandExecutor.ExecuteAsync).Build();
+            CommandLineCommand rootCommand = new CommandBuilder(rootData, commandExecutor.ExecuteAsync, loggerFactory).Build();
 
             var parser = new CommandLineBuilder(rootCommand)
                         .UseHost()

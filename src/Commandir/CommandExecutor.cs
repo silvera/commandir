@@ -1,16 +1,24 @@
 namespace Commandir;
 
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
 
 using Commandir.Core;
 
-public static class CommandExecutor
+public class CommandExecutor
 {
-    public static async Task ExecuteAsync(IHost host)
+    private readonly ILogger _logger;
+    
+    public CommandExecutor(ILoggerFactory loggerFactory)
+    {
+        _logger = loggerFactory.CreateLogger<CommandExecutor>();
+    }
+
+    public async Task ExecuteAsync(IHost host)
     {
         InvocationContext invocationContext = host.Services.GetRequiredService<InvocationContext>();
         if(invocationContext == null)
@@ -34,12 +42,17 @@ public static class CommandExecutor
         if(commandImpl == null)
             throw new Exception($"Failed to create an instance of the command type `{commandType}`");
 
+        _logger.LogInformation("Executing Command: Name: {Name} Type: {Type}", commandData.Name, commandData.Type);
+
         Dictionary<string, object?> parameters = new Dictionary<string, object?>();
 
         // Add command parameters.
         foreach(var parameterPair in command.CommandData.Parameters)
         {
-            parameters[parameterPair.Key] = parameterPair.Value;
+            string name = parameterPair.Key;
+            object? value = parameterPair.Value;
+            parameters[name] = value;
+            _logger.LogInformation("Adding Parameter: Name: {Name} Value: {Value}", name, value);
         }
 
         // Add command line parameters after command parameters so they can override the parameters.
@@ -47,14 +60,22 @@ public static class CommandExecutor
         {
             object? value = invocationContext.ParseResult.GetValueForArgument(argument);
             if(value != null)
-                parameters[argument.Name] = value;
+            {
+                string name = argument.Name; 
+                parameters[name] = value;
+                _logger.LogInformation("Adding Argument: Name: {Name} Value: {Value}", name, value);
+            }
         }
 
         foreach(Option option in command.Options)
         {
             object? value = invocationContext.ParseResult.GetValueForOption(option);
             if(value != null)
-            parameters[option.Name] = value;  
+            {
+                string name = option.Name;
+                parameters[name] = value;
+                _logger.LogInformation("Adding Option: Name: {Name} Value: {Value}", name, value);
+            }  
         }
 
         ICommandContext commandContext = new CommandContext(host.Services, parameters);
@@ -70,14 +91,17 @@ public static class CommandExecutor
         }
     }
 
-    private static Dictionary<string, Type> GetCommandTypes(Assembly assembly)
+    private Dictionary<string, Type> GetCommandTypes(Assembly assembly)
     {
         Dictionary<string, Type> types = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
         foreach (Type type in assembly.GetTypes())
         {
             if (typeof(ICommand).IsAssignableFrom(type))
             {
-                types.Add(type.FullName!, type);
+                string typeName = type.FullName!;
+
+                types.Add(typeName, type);
+                _logger.LogInformation("Loading Command: {Type}", typeName);
             }
         }
         return types;

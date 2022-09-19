@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using Commandir.Core;
 
-public class Echo : ICommand
+public class Console : ICommand
 {
     public Task ExecuteAsync(ICommandContext context)
     {
@@ -13,7 +13,7 @@ public class Echo : ICommand
             throw new Exception($"Failed to find parameter `message`.");
         
         var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
-        var logger = loggerFactory.CreateLogger<Echo>();
+        var logger = loggerFactory.CreateLogger<Console>();
         string? message = Convert.ToString(messageObj);
         logger.LogInformation($"{message}");
         return Task.CompletedTask;
