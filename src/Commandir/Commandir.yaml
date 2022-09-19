@@ -1,12 +1,14 @@
 ---
 description: Sample Commands
 commands:
-   - name: echo 
-     description: Echoes the message
-     type: Commandir.Builtins.Echo
-     parameters:
-        message: "Hello World!"
-     arguments:
-        - name: message
-          description: The messsage
+   - name: echo
+     commands:
+        - name: builtin 
+          description: Echoes the message
+          type: Commandir.Builtins.Echo
+          parameters:
+             message: "Hello World!"
+          arguments:
+             - name: message
+               description: The messsage
        

@@ -50,8 +50,11 @@ namespace Commandir
                 throw new ArgumentNullException(nameof(CommandData.Name));
 
             CommandLineCommand command = new CommandLineCommand(commandData);
-            command.Handler = CommandHandler.Create<IHost>(commandHandler);
             parentCommand.AddCommand(command);
+
+            // Only assign a CommandHandler to leaf commands (or subcommands will not work).
+            if(commandData.Commands.Count == 0)
+                command.Handler = CommandHandler.Create<IHost>(commandHandler);
 
             foreach(ArgumentData argumentData in commandData.Arguments)
             {
@@ -73,7 +76,7 @@ namespace Commandir
 
             string arguments = string.Join(",", commandData.Arguments.Select(i => i.Name));
             string options = string.Join(",", commandData.Options.Select(i => i.Name));
-            _logger.LogInformation("Reading Definition: {Name} Arguments: [{Arguments}] Options: [{Options}]", commandData.Name, arguments, options);
+            _logger.LogInformation("Loading Definition: {Name} Arguments: [{Arguments}] Options: [{Options}]", commandData.Name, arguments, options);
             foreach(CommandData subCommandData in commandData.Commands)
             {
                 AddCommand(subCommandData, command, commandHandler);
