@@ -4,11 +4,13 @@ commands:
    - name: echo
      commands:
         - name: builtin 
-          description: Echoes the message
+          description: Echoes the message using the builtin Echo command
           type: Commandir.Builtins.Echo
           parameters:
-             message: "Hello World!"
-          arguments:
-             - name: message
-               description: The messsage
+             message: Hello World!
+        - name: shell 
+          description: Echoes the message using the system's 'echo' command
+          type: Commandir.Builtins.Shell
+          parameters:
+             command: "echo Hello World!"
        
