@@ -28,9 +28,9 @@ public class CommandExecutor
         if(command == null)
             throw new Exception("Failed to obtain command from InvocationContext.");
 
-        CommandData commandData = command.CommandData;
+        CommandDefinition commandDefinition = command.CommandDefinition;
         
-        string? commandTypeStr  = command.CommandData.Type;
+        string? commandTypeStr  = commandDefinition.Type;
         if(commandTypeStr == null)
             throw new Exception("Command type cannot be null.");
     
@@ -42,12 +42,12 @@ public class CommandExecutor
         if(commandImpl == null)
             throw new Exception($"Failed to create an instance of the command type `{commandType}`");
 
-        _logger.LogInformation("Executing Command: Name: {Name} Type: {Type}", commandData.Name, commandData.Type);
+        _logger.LogInformation("Executing Command: Name: {Name} Type: {Type}", commandDefinition.Name, commandDefinition.Type);
 
         Dictionary<string, object?> parameters = new Dictionary<string, object?>();
 
         // Add command parameters.
-        foreach(var parameterPair in command.CommandData.Parameters)
+        foreach(var parameterPair in commandDefinition.Parameters)
         {
             string name = parameterPair.Key;
             object? value = parameterPair.Value;

@@ -1,3 +1,4 @@
+using Commandir.Core;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.Threading.Tasks;
@@ -7,22 +8,21 @@ namespace Commandir.Tests
 {
     public class CommandBuilderTests
     {
-        private static Core.CommandData CreateRootCommandData() => new Core.CommandData() { Name = "root", Description = "root", Type = "Commandir.Builtins.Default" };
-        private static Core.CommandData CreateSubCommandData() => new Core.CommandData { Name = "subcommand", Description = "subcommand", Type = "Commandir.Builtins.Default" };
-        private static Core.CommandData CreateSubSubCommandData() => new Core.CommandData { Name = "subsubcommand", Description = "subsubcommand", Type = "Commandir.Builtins.Default" };
+        private static CommandDefinition CreateRootCommandData() => new CommandDefinition() { Name = "root", Description = "root", Type = "Commandir.Builtins.Default" };        private static CommandDefinition CreateSubCommandData() => new CommandDefinition { Name = "subcommand", Description = "subcommand", Type = "Commandir.Builtins.Default" };
+        private static CommandDefinition CreateSubSubCommandData() => new CommandDefinition { Name = "subsubcommand", Description = "subsubcommand", Type = "Commandir.Builtins.Default" };
         
-        private CommandBuilder CreateCommandBuilder(Core.CommandData rootCommandData)
+        private CommandBuilder CreateCommandBuilder(CommandDefinition rootCommandDefinition)
         {
             ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-            return new CommandBuilder(rootCommandData, host => Task.CompletedTask, loggerFactory);
+            return new CommandBuilder(rootCommandDefinition, host => Task.CompletedTask, loggerFactory);
         }
         
         [Fact]
         public void Builds_CommandTree()
         {
-            Core.CommandData rootCommandData = CreateRootCommandData();
-            Core.CommandData subCommandData = CreateSubCommandData();    
-            Core.CommandData subSubCommandData = CreateSubSubCommandData();
+            CommandDefinition rootCommandData = CreateRootCommandData();
+            CommandDefinition subCommandData = CreateSubCommandData();    
+            CommandDefinition subSubCommandData = CreateSubSubCommandData();
             
             subCommandData.Commands.Add(subSubCommandData);
             rootCommandData.Commands.Add(subCommandData);
@@ -47,9 +47,9 @@ namespace Commandir.Tests
         [Fact]
         public void Adds_Argument()
         {   
-            Core.CommandData rootCommandData = CreateRootCommandData();
-            Core.CommandData subCommandData = CreateSubCommandData();
-            Core.ArgumentData argumentData = new Core.ArgumentData{ Name = "argument", Description = "argument" }; 
+            CommandDefinition rootCommandData = CreateRootCommandData();
+            CommandDefinition subCommandData = CreateSubCommandData();
+            ArgumentDefinition argumentData = new ArgumentDefinition { Name = "argument", Description = "argument" }; 
             subCommandData.Arguments.Add(argumentData);
             rootCommandData.Commands.Add(subCommandData);
 
@@ -64,9 +64,9 @@ namespace Commandir.Tests
         [Fact]
         public void Adds_Option()
         {   
-            Core.CommandData rootCommandData = CreateRootCommandData();
-            Core.CommandData subCommandData = CreateSubCommandData();
-            Core.OptionData optionData = new Core.OptionData { Name = "option", Description = "option" };
+            CommandDefinition rootCommandData = CreateRootCommandData();
+            CommandDefinition subCommandData = CreateSubCommandData();
+            OptionDefinition optionData = new OptionDefinition { Name = "option", Description = "option" };
             subCommandData.Options.Add(optionData);
             rootCommandData.Commands.Add(subCommandData);
 

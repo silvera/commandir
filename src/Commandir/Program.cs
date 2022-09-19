@@ -1,16 +1,13 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Commandir.Core;
+
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
 using System.CommandLine.Parsing;
-
-using Serilog;
-using Serilog.Extensions.Hosting;
-using Serilog.Settings.Configuration;
-
-using Commandir.Core;
 
 namespace Commandir
 {
@@ -58,11 +55,11 @@ namespace Commandir
             logger.LogInformation("Loading Definitions: {YamlFilePath}", yamlFilePath);
             string yaml = File.ReadAllText(yamlFilePath);
         
-            YamlCommandDataBuilder commandDataBuilder = new YamlCommandDataBuilder(yaml); 
-            CommandData rootData  = commandDataBuilder.Build();
+            YamlCommandDefinitionBuilder commandDefinitionBuilder = new YamlCommandDefinitionBuilder(yaml); 
+            CommandDefinition rootDefinition  = commandDefinitionBuilder.Build();
         
             CommandExecutor commandExecutor = new CommandExecutor(loggerFactory);
-            CommandBuilder commandBuilder = new CommandBuilder(rootData, commandExecutor.ExecuteAsync, loggerFactory);
+            CommandBuilder commandBuilder = new CommandBuilder(rootDefinition, commandExecutor.ExecuteAsync, loggerFactory);
             CommandLineCommand rootCommand = commandBuilder.Build(); 
             return new CommandLineBuilder(rootCommand);
         }

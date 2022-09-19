@@ -1,3 +1,4 @@
+using Commandir.Core;
 using Microsoft.Extensions.Logging;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
@@ -23,8 +24,8 @@ namespace Commandir.Tests
             ";
 
             CommandExecutor commandExecutor = new CommandExecutor(loggerFactory);
-            Core.CommandData rootData = new YamlCommandDataBuilder(yaml).Build();
-            CommandLineCommand rootCommand = new CommandBuilder(rootData, commandExecutor.ExecuteAsync, loggerFactory).Build();
+            CommandDefinition rootDefinition = new YamlCommandDefinitionBuilder(yaml).Build();
+            CommandLineCommand rootCommand = new CommandBuilder(rootDefinition, commandExecutor.ExecuteAsync, loggerFactory).Build();
 
             var parser = new CommandLineBuilder(rootCommand)
                         .UseHost()

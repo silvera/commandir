@@ -5,11 +5,11 @@ using Commandir.Core;
 
 namespace Commandir;
 
-public sealed class YamlCommandDataBuilder : IBuilder<Core.CommandData>
+public sealed class YamlCommandDefinitionBuilder : IBuilder<CommandDefinition>
 {
     private readonly string _yaml;
     private readonly IDeserializer _deserializer;
-    public YamlCommandDataBuilder(string yaml)
+    public YamlCommandDefinitionBuilder(string yaml)
     {
         _yaml = yaml;
         _deserializer = new DeserializerBuilder()
@@ -18,14 +18,14 @@ public sealed class YamlCommandDataBuilder : IBuilder<Core.CommandData>
             .Build();
     }
 
-    public CommandData Build()
+    public CommandDefinition Build()
     { 
-        CommandData rootData = _deserializer.Deserialize<CommandData>(_yaml);
+        CommandDefinition rootDefinition = _deserializer.Deserialize<CommandDefinition>(_yaml);
 
         // The yaml file is not required to contain an entry for the root command's name.
-        if(string.IsNullOrWhiteSpace(rootData.Name)) 
-            rootData.Name = "Commandir";
+        if(string.IsNullOrWhiteSpace(rootDefinition.Name)) 
+            rootDefinition.Name = "Commandir";
 
-        return rootData; 
+        return rootDefinition; 
     }
 }
