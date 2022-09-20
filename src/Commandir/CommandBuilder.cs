@@ -70,9 +70,10 @@ namespace Commandir
                 command.AddOption(option);
             }
 
-            string arguments = string.Join(",", commandDefinition.Arguments.Select(i => i.Name));
-            string options = string.Join(",", commandDefinition.Options.Select(i => i.Name));
-            _logger.LogInformation("Loading Definition: {Name} Arguments: [{Arguments}] Options: [{Options}]", commandDefinition.Name, arguments, options);
+            string arguments = string.Join(", ", commandDefinition.Arguments.Select(i => i.Name));
+            string options = string.Join(", ", commandDefinition.Options.Select(i => i.Name));
+            string commands = string.Join(", ", commandDefinition.Commands.Select(i => i.Name));
+            _logger.LogInformation("Creating Command: {Name} Arguments: [{Arguments}] Options: [{Options}] [{Commands}]", commandDefinition.Name, arguments, options, commands);
             foreach(CommandDefinition subCommandDefinition in commandDefinition.Commands)
             {
                 AddCommand(subCommandDefinition, command, commandHandler);

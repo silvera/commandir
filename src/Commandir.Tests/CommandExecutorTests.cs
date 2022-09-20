@@ -23,8 +23,9 @@ namespace Commandir.Tests
                         message: Test Message
             ";
 
-            CommandExecutor commandExecutor = new CommandExecutor(loggerFactory);
-            //CommandDefinition rootDefinition = new YamlCommandDefinitionBuilder(yaml).Build();
+            CommandProvider commandProvider = new CommandProvider(loggerFactory);
+            commandProvider.AddCommands(typeof(Commandir.Program).Assembly);
+            CommandExecutor commandExecutor = new CommandExecutor(commandProvider, loggerFactory);
             CommandDefinition rootDefinition = new CommandDefinitionBuilder().AddYaml(yaml).Build();
             CommandLineCommand rootCommand = new CommandBuilder(rootDefinition, commandExecutor.ExecuteAsync, loggerFactory).Build();
 

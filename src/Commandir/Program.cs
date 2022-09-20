@@ -10,9 +10,9 @@ using System.CommandLine.Parsing;
 
 namespace Commandir
 {
-    class Program
+    public class Program
     {
-        static async Task Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Override("Commandir", Serilog.Events.LogEventLevel.Information)
@@ -42,11 +42,14 @@ namespace Commandir
         private static CommandLineBuilder BuildCommandLine(ILoggerFactory loggerFactory)
         {
             CommandDefinition? rootDefinition = new CommandDefinitionBuilder()
-            .AddYamlFile(Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml"))
-            .Build();
+                                .AddYamlFile(Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml"))
+                                .Build();
 
-            CommandExecutor commandExecutor = new CommandExecutor(loggerFactory);
-            CommandBuilder commandBuilder = new CommandBuilder(rootDefinition, commandExecutor.ExecuteAsync, loggerFactory);
+            CommandProvider commandProvider = new CommandProvider(loggerFactory);
+            commandProvider.AddCommands(typeof(Program).Assembly);
+
+            CommandExecutor commandExecutor = new CommandExecutor(commandProvider, loggerFactory);
+            CommandBuilder commandBuilder = new CommandBuilder(rootDefinition, commandExecutor.ExecuteAsync, loggerFactory); // commandExecutor.ExecuteAsync
             CommandLineCommand rootCommand = commandBuilder.Build(); 
             return new CommandLineBuilder(rootCommand);
         }
