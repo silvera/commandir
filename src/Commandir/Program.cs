@@ -14,15 +14,11 @@ namespace Commandir
     {
         static async Task Main(string[] args)
         {
-            var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: true)
-            .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production"}.json", optional: true)
-            .Build();
-
-
             var logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(configuration)
+                .MinimumLevel.Override("Commandir", Serilog.Events.LogEventLevel.Information)
+                .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Error)
+                .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+                .WriteTo.Console(outputTemplate: "{SourceContext}: {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
 
             Log.Logger = logger;
