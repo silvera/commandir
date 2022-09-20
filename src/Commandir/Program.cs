@@ -12,7 +12,7 @@ namespace Commandir
 {
     public class Program
     {
-        public static async Task Main(string[] args)
+        public static async Task<int> Main(string[] args)
         {
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Override("Commandir", Serilog.Events.LogEventLevel.Information)
@@ -26,16 +26,22 @@ namespace Commandir
 
             try
             {
-                await BuildCommandLine(loggerFactory)
+                int returnCode = await BuildCommandLine(loggerFactory)
                 .UseHost(_ => Host.CreateDefaultBuilder(args)
                 .UseSerilog(logger))
                 .UseDefaults()
                 .Build()
                 .InvokeAsync(args);
+
+                return returnCode;
             }
             catch(Exception e)
             {
-                Console.WriteLine(e.Message);
+                loggerFactory
+                    .CreateLogger<Program>()
+                    .LogCritical("Error: {Error}", e.Message);
+                
+                return 1;
             }
         }
 
@@ -48,8 +54,8 @@ namespace Commandir
             CommandProvider commandProvider = new CommandProvider(loggerFactory);
             commandProvider.AddCommands(typeof(Program).Assembly);
 
-            CommandExecutor commandExecutor = new CommandExecutor(commandProvider, loggerFactory);
-            CommandBuilder commandBuilder = new CommandBuilder(rootDefinition, commandExecutor.ExecuteAsync, loggerFactory); // commandExecutor.ExecuteAsync
+            CommandExecutor commandExecutor = new CommandExecutor(loggerFactory, commandProvider);
+            CommandBuilder commandBuilder = new CommandBuilder(loggerFactory, rootDefinition, commandExecutor.ExecuteAsync);
             CommandLineCommand rootCommand = commandBuilder.Build(); 
             return new CommandLineBuilder(rootCommand);
         }

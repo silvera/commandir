@@ -13,10 +13,10 @@ public class CommandExecutor
     private readonly CommandProvider _commandProvider;
     private readonly ILogger _logger;
     
-    public CommandExecutor(CommandProvider commandProvider, ILoggerFactory loggerFactory)
+    public CommandExecutor(ILoggerFactory loggerFactory, CommandProvider commandProvider)
     {
-         _commandProvider = commandProvider;
         _logger = loggerFactory.CreateLogger<CommandExecutor>();
+        _commandProvider = commandProvider;
     }
 
     private void AddParameter(Dictionary<string, object?> parameters, string parameterType, string parameterName, object? parameterValue)
@@ -26,10 +26,16 @@ public class CommandExecutor
         _logger.LogInformation("Adding {ParameterType}: Name: {ParameterName} Value: {ParameterValue} IsOverride: {IsOverride}", parameterType, parameterName, parameterValue, isOverride);
     }
 
-
     public async Task ExecuteAsync(IHost host)
     {
-        ParseResult parseResult = host.Services.GetRequiredService<InvocationContext>().ParseResult!;
+        InvocationContext invocationContext = host.Services.GetRequiredService<InvocationContext>();
+        if(invocationContext == null)
+            throw new Exception("InvocationContext is null."); 
+
+        ParseResult parseResult = invocationContext.ParseResult;
+        if(parseResult == null)
+            throw new Exception("ParseResult is null."); 
+        
         CommandLineCommand command = (CommandLineCommand)parseResult.CommandResult.Command;
         CommandDefinition commandDefinition = command.CommandDefinition;
         

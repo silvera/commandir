@@ -13,7 +13,7 @@ namespace Commandir.Tests
         private CommandBuilder CreateCommandBuilder(CommandDefinition rootCommandDefinition)
         {
             ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-            return new CommandBuilder(rootCommandDefinition, host => Task.CompletedTask, loggerFactory);
+            return new CommandBuilder(loggerFactory, rootCommandDefinition, host => Task.CompletedTask);
         }
 
         [Fact]

@@ -22,11 +22,11 @@ namespace Commandir
         private readonly CommandDefinition _rootDefinition;
         private readonly Func<IHost, Task> _commandHandler;
         private readonly Microsoft.Extensions.Logging.ILogger _logger;
-        public CommandBuilder(CommandDefinition rootDefinition, Func<IHost, Task> commandHandler, ILoggerFactory loggerFactory)
+        public CommandBuilder(ILoggerFactory loggerFactory, CommandDefinition rootDefinition, Func<IHost, Task> commandHandler)
         {
+            _logger = loggerFactory.CreateLogger<CommandBuilder>();
             _rootDefinition = rootDefinition;
             _commandHandler = commandHandler;
-            _logger = loggerFactory.CreateLogger<CommandBuilder>();
         }
 
         public CommandLineCommand Build()

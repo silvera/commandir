@@ -25,9 +25,9 @@ namespace Commandir.Tests
 
             CommandProvider commandProvider = new CommandProvider(loggerFactory);
             commandProvider.AddCommands(typeof(Commandir.Program).Assembly);
-            CommandExecutor commandExecutor = new CommandExecutor(commandProvider, loggerFactory);
+            CommandExecutor commandExecutor = new CommandExecutor( loggerFactory, commandProvider);
             CommandDefinition rootDefinition = new CommandDefinitionBuilder().AddYaml(yaml).Build();
-            CommandLineCommand rootCommand = new CommandBuilder(rootDefinition, commandExecutor.ExecuteAsync, loggerFactory).Build();
+            CommandLineCommand rootCommand = new CommandBuilder(loggerFactory, rootDefinition, commandExecutor.ExecuteAsync).Build();
 
             var parser = new CommandLineBuilder(rootCommand)
                         .UseHost()
