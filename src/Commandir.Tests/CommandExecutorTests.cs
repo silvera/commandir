@@ -24,7 +24,8 @@ namespace Commandir.Tests
             ";
 
             CommandExecutor commandExecutor = new CommandExecutor(loggerFactory);
-            CommandDefinition rootDefinition = new YamlCommandDefinitionBuilder(yaml).Build();
+            //CommandDefinition rootDefinition = new YamlCommandDefinitionBuilder(yaml).Build();
+            CommandDefinition rootDefinition = new CommandDefinitionBuilder().AddYaml(yaml).Build();
             CommandLineCommand rootCommand = new CommandBuilder(rootDefinition, commandExecutor.ExecuteAsync, loggerFactory).Build();
 
             var parser = new CommandLineBuilder(rootCommand)

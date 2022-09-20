@@ -1,5 +1,4 @@
 ﻿using Commandir.Core;
-
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -17,8 +16,8 @@ namespace Commandir
         {
             var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json")
-            .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production"}.json", true)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production"}.json", optional: true)
             .Build();
 
 
@@ -33,7 +32,7 @@ namespace Commandir
             {
                 await BuildCommandLine(loggerFactory)
                 .UseHost(_ => Host.CreateDefaultBuilder(args)
-                .UseSerilog())
+                .UseSerilog(logger))
                 .UseDefaults()
                 .Build()
                 .InvokeAsync(args);
@@ -46,18 +45,10 @@ namespace Commandir
 
         private static CommandLineBuilder BuildCommandLine(ILoggerFactory loggerFactory)
         {
-            string currentDirectory = Directory.GetCurrentDirectory(); 
-            string yamlFilePath = Path.Combine(currentDirectory, "Commandir.yaml");
-            if(!File.Exists(yamlFilePath))
-                throw new FileNotFoundException($"No Commandir.yaml file found in {currentDirectory}", "Commandir.yaml");
+            CommandDefinition? rootDefinition = new CommandDefinitionBuilder()
+            .AddYamlFile(Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml"))
+            .Build();
 
-            var logger = loggerFactory.CreateLogger<Program>();
-            logger.LogInformation("Loading Definitions: {YamlFilePath}", yamlFilePath);
-            string yaml = File.ReadAllText(yamlFilePath);
-        
-            YamlCommandDefinitionBuilder commandDefinitionBuilder = new YamlCommandDefinitionBuilder(yaml); 
-            CommandDefinition rootDefinition  = commandDefinitionBuilder.Build();
-        
             CommandExecutor commandExecutor = new CommandExecutor(loggerFactory);
             CommandBuilder commandBuilder = new CommandBuilder(rootDefinition, commandExecutor.ExecuteAsync, loggerFactory);
             CommandLineCommand rootCommand = commandBuilder.Build(); 

@@ -1,9 +1,8 @@
+using Commandir.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
-using Serilog;
-using Commandir.Core;
 
 namespace Commandir
 {
@@ -18,7 +17,7 @@ namespace Commandir
         }
     }
 
-    public class CommandBuilder : IBuilder<CommandLineCommand>
+    public class CommandBuilder
     {
         private readonly CommandDefinition _rootDefinition;
         private readonly Func<IHost, Task> _commandHandler;
@@ -31,10 +30,7 @@ namespace Commandir
         }
 
         public CommandLineCommand Build()
-        {
-            // Set root Name to avoid exceptions.
-            _rootDefinition.Name = "Commandir";
-            
+        {   
             CommandLineCommand rootCommand = new CommandLineCommand(_rootDefinition);
             foreach(CommandDefinition subCommandData in _rootDefinition.Commands)
             {
