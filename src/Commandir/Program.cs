@@ -14,8 +14,15 @@ namespace Commandir
     {
         public static async Task<int> Main(string[] args)
         {
+            Serilog.Events.LogEventLevel commandirLogLevel = Serilog.Events.LogEventLevel.Information;
+            if(args.Length > 0)
+            {
+                if(string.Equals(args[0], "--verbose", StringComparison.OrdinalIgnoreCase))
+                    commandirLogLevel = Serilog.Events.LogEventLevel.Verbose;
+            }
+
             var logger = new LoggerConfiguration()
-                .MinimumLevel.Override("Commandir", Serilog.Events.LogEventLevel.Information)
+                .MinimumLevel.Override("Commandir", commandirLogLevel)
                 .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Error)
                 .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
                 .WriteTo.Console(outputTemplate: "{SourceContext}: {Message:lj}{NewLine}{Exception}")

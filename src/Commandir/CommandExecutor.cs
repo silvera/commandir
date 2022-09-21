@@ -48,7 +48,7 @@ public class CommandExecutor
     {
         bool isOverride = parameters.ContainsKey(parameterName);
         parameters[parameterName] = parameterValue;
-        _logger.LogInformation("Adding {ParameterType}: Name: {ParameterName} Value: {ParameterValue} IsOverride: {IsOverride}", parameterType, parameterName, parameterValue, isOverride);
+        _logger.LogDebug("Adding {ParameterType}: Name: {ParameterName} Value: {ParameterValue} IsOverride: {IsOverride}", parameterType, parameterName, parameterValue, isOverride);
     }
 
     public async Task ExecuteAsync(IHost host)
@@ -72,7 +72,7 @@ public class CommandExecutor
         if(commandImpl == null)
             throw new Exception($"Failed to create an instance of the command `{commandTypeStr}`");
 
-        _logger.LogInformation("Executing Command: Name: {Name} Type: {Type}", commandDefinition.Name, commandDefinition.Type);
+        _logger.LogDebug("Executing Command: Name: {Name} Type: {Type}", commandDefinition.Name, commandDefinition.Type);
 
         // Create parameters dictionary
         Dictionary<string, object?> parameters = new Dictionary<string, object?>();

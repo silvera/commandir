@@ -28,6 +28,10 @@ namespace Commandir
         public CommandLineCommand Build()
         {   
             CommandLineCommand rootCommand = new CommandLineCommand(_rootDefinition);
+            
+            // Add --verbose (logging) option to root command so System.CommandLine will recognize it and ignore it. 
+            rootCommand.AddOption(new Option<bool>("--verbose"));
+
             foreach(CommandDefinition subCommandData in _rootDefinition.Commands)
             {
                 AddCommand(subCommandData, rootCommand);
@@ -65,7 +69,7 @@ namespace Commandir
             string arguments = string.Join(", ", commandDefinition.Arguments.Select(i => i.Name));
             string options = string.Join(", ", commandDefinition.Options.Select(i => i.Name));
             string commands = string.Join(", ", commandDefinition.Commands.Select(i => i.Name));
-            _logger.LogInformation("Creating Command: {Name} Arguments: [{Arguments}] Options: [{Options}] Commands: [{Commands}]", commandDefinition.Name, arguments, options, commands);
+            _logger.LogDebug("Creating Command: {Name} Arguments: [{Arguments}] Options: [{Options}] Commands: [{Commands}]", commandDefinition.Name, arguments, options, commands);
             foreach(CommandDefinition subCommandDefinition in commandDefinition.Commands)
             {
                 AddCommand(subCommandDefinition, command);

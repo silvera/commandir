@@ -23,7 +23,7 @@ namespace Commandir
                     string typeName = type.FullName!;
 
                     _commandTypes.Add(typeName, type);
-                    _logger.LogInformation("Adding Command: {Type}", typeName);
+                    _logger.LogDebug("Adding Command: {Type}", typeName);
                 }
             }
         }

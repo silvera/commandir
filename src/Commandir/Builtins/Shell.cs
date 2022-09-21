@@ -34,10 +34,10 @@ public class Shell : ICommand
         using (var writer = new StreamWriter(tempFile))
         {
             writer.WriteLine(formattedCommand);
-            logger.LogInformation("Wrote command: {Command} to file: {TempFile}", formattedCommand, tempFile);
+            logger.LogDebug("Wrote command: {Command} to file: {TempFile}", formattedCommand, tempFile);
         }
 
-        logger.LogInformation("Executing command: {Command}", formattedCommand);
+        logger.LogDebug("Executing command: {Command}", formattedCommand);
 
         using var process = Process.Start(new ProcessStartInfo
         {
@@ -50,7 +50,7 @@ public class Shell : ICommand
 
         await process.WaitForExitAsync(context.CancellationToken);
 
-        logger.LogInformation("Deleting file: {TempFile}", tempFile);
+        logger.LogDebug("Deleting file: {TempFile}", tempFile);
         File.Delete(tempFile);
 
         return new CommandResult(context, process.ExitCode, formattedCommand);
