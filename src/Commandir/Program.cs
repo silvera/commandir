@@ -24,16 +24,18 @@ namespace Commandir
             Log.Logger = logger;
             ILoggerFactory loggerFactory = new LoggerFactory().AddSerilog(logger);
 
+            Commandir.Core.CommandResult? commandResult = null;
+
             try
             {
-                int returnCode = await BuildCommandLine(loggerFactory)
+                await BuildCommandLine(loggerFactory, i => commandResult = i)
                 .UseHost(_ => Host.CreateDefaultBuilder(args)
                 .UseSerilog(logger))
                 .UseDefaults()
                 .Build()
                 .InvokeAsync(args);
 
-                return returnCode;
+                return commandResult?.ReturnCode ?? 1;
             }
             catch(Exception e)
             {
@@ -45,18 +47,19 @@ namespace Commandir
             }
         }
 
-        private static CommandLineBuilder BuildCommandLine(ILoggerFactory loggerFactory)
+        private static CommandLineBuilder BuildCommandLine(ILoggerFactory loggerFactory, Action<Commandir.Core.CommandResult> commandResultHandler)
         {
             CommandDefinition? rootDefinition = new CommandDefinitionBuilder()
                                 .AddYamlFile(Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml"))
                                 .Build();
-
+            
+            CommandLineCommand rootCommand = new CommandBuilder(loggerFactory, rootDefinition)
+                                .Build();
+            
             CommandProvider commandProvider = new CommandProvider(loggerFactory);
             commandProvider.AddCommands(typeof(Program).Assembly);
-
-            CommandExecutor commandExecutor = new CommandExecutor(loggerFactory, commandProvider);
-            CommandBuilder commandBuilder = new CommandBuilder(loggerFactory, rootDefinition, commandExecutor.ExecuteAsync);
-            CommandLineCommand rootCommand = commandBuilder.Build(); 
+            
+            CommandExecutor commandExecutor = new CommandExecutor(loggerFactory, commandProvider, rootCommand, commandResultHandler);
             return new CommandLineBuilder(rootCommand);
         }
     }

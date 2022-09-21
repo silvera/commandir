@@ -20,13 +20,11 @@ namespace Commandir
     public class CommandBuilder
     {
         private readonly CommandDefinition _rootDefinition;
-        private readonly Func<IHost, Task> _commandHandler;
         private readonly Microsoft.Extensions.Logging.ILogger _logger;
-        public CommandBuilder(ILoggerFactory loggerFactory, CommandDefinition rootDefinition, Func<IHost, Task> commandHandler)
+        public CommandBuilder(ILoggerFactory loggerFactory, CommandDefinition rootDefinition)
         {
             _logger = loggerFactory.CreateLogger<CommandBuilder>();
             _rootDefinition = rootDefinition;
-            _commandHandler = commandHandler;
         }
 
         public CommandLineCommand Build()
@@ -34,13 +32,13 @@ namespace Commandir
             CommandLineCommand rootCommand = new CommandLineCommand(_rootDefinition);
             foreach(CommandDefinition subCommandData in _rootDefinition.Commands)
             {
-                AddCommand(subCommandData, rootCommand, _commandHandler);
+                AddCommand(subCommandData, rootCommand);
             }
 
             return rootCommand;
         }
 
-        private void AddCommand(CommandDefinition commandDefinition, Command parentCommand, Func<IHost, Task> commandHandler)
+        private void AddCommand(CommandDefinition commandDefinition, Command parentCommand)
         {
             if(string.IsNullOrWhiteSpace(commandDefinition.Name))
                 throw new ArgumentNullException(nameof(CommandDefinition.Name));
@@ -48,9 +46,9 @@ namespace Commandir
             CommandLineCommand command = new CommandLineCommand(commandDefinition);
             parentCommand.AddCommand(command);
 
-            // Only assign a CommandHandler to leaf commands (to support subcommands).
-            if(commandDefinition.Commands.Count == 0)
-                command.Handler = CommandHandler.Create<IHost>(commandHandler);
+            // // Only assign a CommandHandler to leaf commands (to support subcommands).
+            // if(commandDefinition.Commands.Count == 0)
+            //     command.Handler = CommandHandler.Create<IHost>(commandHandler);
 
             foreach(ArgumentDefinition argumentDefinition in commandDefinition.Arguments)
             {
@@ -76,7 +74,7 @@ namespace Commandir
             _logger.LogInformation("Creating Command: {Name} Arguments: [{Arguments}] Options: [{Options}] [{Commands}]", commandDefinition.Name, arguments, options, commands);
             foreach(CommandDefinition subCommandDefinition in commandDefinition.Commands)
             {
-                AddCommand(subCommandDefinition, command, commandHandler);
+                AddCommand(subCommandDefinition, command);
             }
         }       
     }

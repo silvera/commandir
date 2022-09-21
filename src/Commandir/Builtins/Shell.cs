@@ -7,7 +7,7 @@ namespace Commandir.Builtins;
 
 public class Shell : ICommand
 {
-    public async Task ExecuteAsync(ICommandContext context)
+    public async Task<CommandResult> ExecuteAsync(ICommandContext context)
     {
         var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<Shell>();
@@ -45,5 +45,7 @@ public class Shell : ICommand
 
         logger.LogInformation("Deleting file: {TempFile}", tempFile);
         File.Delete(tempFile);
+
+        return new CommandResult();
     }
 }

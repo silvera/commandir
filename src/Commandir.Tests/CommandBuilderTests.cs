@@ -10,10 +10,10 @@ namespace Commandir.Tests
 {
     public class CommandBuilderTests
     {
-        private CommandBuilder CreateCommandBuilder(CommandDefinition rootCommandDefinition)
+        private CommandBuilder CreateCommandBuilder(CommandDefinition rootDefinition)
         {
             ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-            return new CommandBuilder(loggerFactory, rootCommandDefinition, host => Task.CompletedTask);
+            return new CommandBuilder(loggerFactory, rootDefinition);
         }
 
         [Fact]

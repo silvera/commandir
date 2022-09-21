@@ -2,5 +2,5 @@
 
 public interface ICommand
 {
-    Task ExecuteAsync(ICommandContext context);
+    Task<CommandResult> ExecuteAsync(ICommandContext context);
 }

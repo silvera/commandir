@@ -6,17 +6,42 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.CommandLine.NamingConventionBinder;
 using System.CommandLine.Parsing;
 
 public class CommandExecutor
 {
-    private readonly CommandProvider _commandProvider;
     private readonly ILogger _logger;
+    private readonly CommandProvider _commandProvider;
+    private readonly CommandLineCommand _rootCommand;
+    private readonly Action<Commandir.Core.CommandResult> _commandResultHandler;
     
-    public CommandExecutor(ILoggerFactory loggerFactory, CommandProvider commandProvider)
+    public CommandExecutor(ILoggerFactory loggerFactory, CommandProvider commandProvider,  CommandLineCommand rootCommand, Action<Commandir.Core.CommandResult> commandResultHandler)
     {
         _logger = loggerFactory.CreateLogger<CommandExecutor>();
         _commandProvider = commandProvider;
+        _rootCommand = rootCommand;
+        _commandResultHandler = commandResultHandler;
+
+        foreach(Command command in rootCommand.Subcommands)
+        {
+            SetCommandHandler(command);
+        }
+    }
+
+    private void SetCommandHandler(Command command)
+    {
+        if(command.Subcommands.Count == 0)
+        {
+            command.Handler = CommandHandler.Create<IHost>(ExecuteAsync);
+        }
+        else
+        {
+            foreach(Command subCommand in command.Subcommands)
+            {
+                SetCommandHandler(subCommand);
+            }
+        }
     }
 
     private void AddParameter(Dictionary<string, object?> parameters, string parameterType, string parameterName, object? parameterValue)
@@ -80,7 +105,8 @@ public class CommandExecutor
         ICommandContext commandContext = new CommandContext(host.Services, parameters);
         try
         {
-            await commandImpl.ExecuteAsync(commandContext);
+            Commandir.Core.CommandResult result = await commandImpl.ExecuteAsync(commandContext);
+            _commandResultHandler(result);
         }
         catch(Exception e)
         {
