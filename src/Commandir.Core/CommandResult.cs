@@ -2,16 +2,18 @@ namespace Commandir.Core;
 
 public sealed class CommandResult
 {
-    public int ReturnCode { get; set; }
-    public object? ReturnValue { get; set;}
+    public CommandContext Context { get; }
+    public int ReturnCode { get; }
+    public object? ReturnValue { get; }
 
-    public CommandResult(int returnCode)
-        : this(returnCode, null)
+    public CommandResult(CommandContext context)
+        : this(context, 0, null)
     {
     }
 
-    public CommandResult(int returnCode, object? returnValue)
+    public CommandResult(CommandContext context, int returnCode, object? returnValue)
     {
+        Context = context;
         ReturnCode = returnCode;
         ReturnValue = returnValue;
     }

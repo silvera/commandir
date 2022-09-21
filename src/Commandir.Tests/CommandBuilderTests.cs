@@ -27,7 +27,6 @@ namespace Commandir.Tests
             ValidateCommand(rootCommand);
         }
 
-
         private void ValidateCommand(CommandLineCommand root)
         {
             Assert.Equal("root", root.Description);

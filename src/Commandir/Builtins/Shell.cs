@@ -46,6 +46,6 @@ public class Shell : ICommand
         logger.LogInformation("Deleting file: {TempFile}", tempFile);
         File.Delete(tempFile);
 
-        return new CommandResult(process.ExitCode);
+        return new CommandResult(context, process.ExitCode, null);
     }
 }

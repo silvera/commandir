@@ -16,6 +16,6 @@ public class Echo : ICommand
         var logger = loggerFactory.CreateLogger<Echo>();
         string? message = Convert.ToString(messageObj);
         logger.LogInformation($"{message}");
-        return Task.FromResult(new CommandResult(0));
+        return Task.FromResult(new CommandResult(context));
     }
 }
