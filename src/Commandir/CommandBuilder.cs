@@ -1,8 +1,6 @@
 using Commandir.Core;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
-using System.CommandLine.NamingConventionBinder;
 
 namespace Commandir
 {
@@ -46,10 +44,6 @@ namespace Commandir
             CommandLineCommand command = new CommandLineCommand(commandDefinition);
             parentCommand.AddCommand(command);
 
-            // // Only assign a CommandHandler to leaf commands (to support subcommands).
-            // if(commandDefinition.Commands.Count == 0)
-            //     command.Handler = CommandHandler.Create<IHost>(commandHandler);
-
             foreach(ArgumentDefinition argumentDefinition in commandDefinition.Arguments)
             {
                 if(string.IsNullOrWhiteSpace(argumentDefinition.Name))
@@ -71,7 +65,7 @@ namespace Commandir
             string arguments = string.Join(", ", commandDefinition.Arguments.Select(i => i.Name));
             string options = string.Join(", ", commandDefinition.Options.Select(i => i.Name));
             string commands = string.Join(", ", commandDefinition.Commands.Select(i => i.Name));
-            _logger.LogInformation("Creating Command: {Name} Arguments: [{Arguments}] Options: [{Options}] [{Commands}]", commandDefinition.Name, arguments, options, commands);
+            _logger.LogInformation("Creating Command: {Name} Arguments: [{Arguments}] Options: [{Options}] Commands: [{Commands}]", commandDefinition.Name, arguments, options, commands);
             foreach(CommandDefinition subCommandDefinition in commandDefinition.Commands)
             {
                 AddCommand(subCommandDefinition, command);

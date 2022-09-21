@@ -1,6 +1,6 @@
 namespace Commandir.Core;
 
-public class CommandDefinition
+public sealed class CommandDefinition
 {
     public string? Name { get; set; }
     public string? Description { get; set; }
@@ -11,13 +11,13 @@ public class CommandDefinition
     public List<CommandDefinition> Commands { get; set; } = new List<CommandDefinition>();
 }
 
-public class ArgumentDefinition
+public sealed class ArgumentDefinition
 {
     public string? Name { get; set; }
     public string? Description { get; set; }
 }
 
-public class OptionDefinition
+public sealed class OptionDefinition
 {
     public string? Name { get; set; }
     public string? Description { get; set; }

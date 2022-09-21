@@ -7,7 +7,7 @@ namespace Commandir.Builtins;
 
 public class Shell : ICommand
 {
-    public async Task<CommandResult> ExecuteAsync(ICommandContext context)
+    public async Task<CommandResult> ExecuteAsync(CommandContext context)
     {
         var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<Shell>();
@@ -41,11 +41,11 @@ public class Shell : ICommand
             throw new Exception($"Failed to create process: {shell} with arguments: {tempFile}");
 
         logger.LogInformation("Executing command: {Command}", command);
-        await process.WaitForExitAsync();
+        await process.WaitForExitAsync(context.CancellationToken);
 
         logger.LogInformation("Deleting file: {TempFile}", tempFile);
         File.Delete(tempFile);
 
-        return new CommandResult();
+        return new CommandResult(process.ExitCode);
     }
 }

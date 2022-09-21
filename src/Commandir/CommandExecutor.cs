@@ -102,7 +102,8 @@ public class CommandExecutor
             }  
         }
 
-        ICommandContext commandContext = new CommandContext(host.Services, parameters);
+        CancellationToken cancellationToken = invocationContext.GetCancellationToken();
+        CommandContext commandContext = new CommandContext(host.Services, cancellationToken, parameters);
         try
         {
             Commandir.Core.CommandResult result = await commandImpl.ExecuteAsync(commandContext);
