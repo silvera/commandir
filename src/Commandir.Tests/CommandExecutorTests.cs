@@ -1,4 +1,7 @@
+using Commandir;
 using Commandir.Core;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.CommandLine.Builder;
@@ -24,7 +27,13 @@ namespace Commandir.Tests
             CommandExecutor commandExecutor = new CommandExecutor( loggerFactory, commandProvider, rootCommand, commandResultHandler);
 
             return new CommandLineBuilder(rootCommand)
-                        .UseHost()
+                        .UseHost(host => 
+                        {
+                            host.ConfigureServices(services =>
+                            {
+                                services.AddSingleton<ITemplateFormatter, StubbleTemplateFormatter>();
+                            });
+                        })
                         .Build();
         }
 
@@ -91,6 +100,46 @@ namespace Commandir.Tests
             Assert.NotNull(commandResult);
             Assert.True(commandResult.Context.Parameters.TryGetValue("message", out object? messageObj));
             Assert.Equal("option", Convert.ToString(messageObj));
+        }
+
+        [Fact]
+        public async Task Echo_Uses_Formatted_Value()
+        {
+            string yaml = @"---
+                commands:
+                   - name: test
+                     type: Commandir.Builtins.Echo
+                     parameters:
+                        user: World
+                        message: Hello {{user}}
+            ";
+
+            Commandir.Core.CommandResult? commandResult = null;
+            Parser parser = CreateParser(yaml, result => commandResult = result);
+            await parser.InvokeAsync(new string[] { "test" });
+
+            Assert.NotNull(commandResult);
+            Assert.Equal("Hello World", Convert.ToString(commandResult.ReturnValue));
+        }
+
+        [Fact]
+        public async Task Shell_Uses_Formatted_Value()
+        {
+            string yaml = @"---
+                commands:
+                   - name: test
+                     type: Commandir.Builtins.Shell
+                     parameters:
+                        user: World
+                        command: echo Hello {{user}}
+            ";
+
+            Commandir.Core.CommandResult? commandResult = null;
+            Parser parser = CreateParser(yaml, result => commandResult = result);
+            await parser.InvokeAsync(new string[] { "test" });
+
+            Assert.NotNull(commandResult);
+            Assert.Equal("echo Hello World", Convert.ToString(commandResult.ReturnValue));
         }
     }    
 }

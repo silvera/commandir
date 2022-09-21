@@ -1,5 +1,5 @@
 ﻿using Commandir.Core;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -29,8 +29,13 @@ namespace Commandir
             try
             {
                 await BuildCommandLine(loggerFactory, i => commandResult = i)
-                .UseHost(_ => Host.CreateDefaultBuilder(args)
-                .UseSerilog(logger))
+                .UseHost(host => {
+                    host.UseSerilog(logger);
+                    host.ConfigureServices(services =>
+                    {
+                        services.AddSingleton<ITemplateFormatter, StubbleTemplateFormatter>();
+                    });
+                })
                 .UseDefaults()
                 .Build()
                 .InvokeAsync(args);
