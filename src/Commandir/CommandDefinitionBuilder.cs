@@ -4,7 +4,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace Commandir;
 
-public sealed class CommandDefinitionBuilder
+internal sealed class CommandDefinitionBuilder
 {
     private CommandDefinition? _rootDefinition;
 

@@ -9,7 +9,7 @@ using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
 using System.CommandLine.Parsing;
 
-public class CommandExecutor
+internal sealed class CommandExecutor
 {
     private readonly ILogger _logger;
     private readonly CommandProvider _commandProvider;

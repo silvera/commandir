@@ -3,7 +3,7 @@ using Stubble.Core.Builders;
 
 namespace Commandir;
 
-public sealed class StubbleTemplateFormatter : ITemplateFormatter
+internal sealed class StubbleTemplateFormatter : ITemplateFormatter
 {
     private readonly Stubble.Core.StubbleVisitorRenderer _renderer;
     public StubbleTemplateFormatter()

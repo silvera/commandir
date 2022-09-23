@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Commandir.Builtins;
 
-public class Shell : ICommand
+public sealed class Shell : ICommand
 {
     public async Task<CommandResult> ExecuteAsync(CommandContext context)
     {

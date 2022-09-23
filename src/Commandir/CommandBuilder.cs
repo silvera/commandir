@@ -4,7 +4,7 @@ using System.CommandLine;
 
 namespace Commandir
 {
-    public class CommandLineCommand : Command
+    internal sealed class CommandLineCommand : Command
     {
         public CommandDefinition CommandDefinition { get; set; }
 
@@ -15,7 +15,7 @@ namespace Commandir
         }
     }
 
-    public class CommandBuilder
+    internal sealed class CommandBuilder
     {
         private readonly CommandDefinition _rootDefinition;
         private readonly Microsoft.Extensions.Logging.ILogger _logger;
@@ -30,7 +30,7 @@ namespace Commandir
             CommandLineCommand rootCommand = new CommandLineCommand(_rootDefinition);
             
             // Add --verbose (logging) option to root command so System.CommandLine will recognize it and ignore it. 
-            rootCommand.AddOption(new Option<bool>("--verbose"));
+            rootCommand.AddOption(new Option<bool>("--verbose", "Enables verbose logging"));
 
             foreach(CommandDefinition subCommandData in _rootDefinition.Commands)
             {

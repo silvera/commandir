@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Commandir
 {
-    public class CommandProvider
+    internal sealed class CommandProvider
     {
         private readonly ILogger _logger;
         private readonly Dictionary<string, Type> _commandTypes = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);

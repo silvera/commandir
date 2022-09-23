@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using Commandir.Core;
 
-public class Echo : ICommand
+public sealed class Echo : ICommand
 {
     public Task<CommandResult> ExecuteAsync(CommandContext context)
     {
