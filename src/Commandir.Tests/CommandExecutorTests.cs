@@ -7,6 +7,7 @@ using System;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
 using System.CommandLine.Parsing;
+using System.IO;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -140,6 +141,29 @@ namespace Commandir.Tests
 
             Assert.NotNull(commandResult);
             Assert.Equal("echo Hello World", Convert.ToString(commandResult.ReturnValue));
+        }
+
+        [Fact]
+        public async Task Integration_Shell_Uses_Formatted_Value()
+        {
+            string tempFile = Path.GetTempFileName();
+            string yaml = $@"---
+                commands:
+                   - name: test
+                     type: Commandir.Builtins.Shell
+                     parameters:
+                        user: World
+                        command: echo Hello {{{{user}}}} > {tempFile}
+            ";
+
+            Commandir.Core.CommandResult? commandResult = null;
+            Parser parser = CreateParser(yaml, result => commandResult = result);
+            await parser.InvokeAsync(new string[] { "test" });
+
+            Assert.NotNull(commandResult);
+            string fileContents = File.ReadAllText(tempFile).TrimEnd('\n');
+            Assert.Equal("Hello World", fileContents);
+            File.Delete(tempFile);
         }
     }    
 }
