@@ -3,9 +3,9 @@ Simple Command Runner
 
 [![test](https://github.com/silvera/commandir/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/silvera/commandir/actions/workflows/build-and-test.yml)
 
-Commandir lets you define commands in a Commandir.yaml file and execute them via the Commandir CLI. By default, Commandir looks for a Commandir.yaml file in the current directory. 
+Commandir lets you define commands in a Commandir.yaml file and execute them via the Commandir CLI. Commandir then exposes those commands as commands to Commandir itself.
 
-Here is the Commandir.yaml file for the canonical Hello World example:
+By default, Commandir looks for a Commandir.yaml file in the current directory. Here is the Commandir.yaml file for the canonical Hello World example:
 
 ```
 ---
