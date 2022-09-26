@@ -55,3 +55,53 @@ Commandir.Builtins.Shell: Executing command: echo "Hello World!"
 Hello World!
 Commandir.Builtins.Shell: Deleting file: /tmp/tmpBM1LIW.tmp
 ```  
+
+Commandir supports arguments, options and subcommands. Arguments and options are demonstrated via the following Commandir.yaml file:
+```
+---
+commands:
+   - name: greet
+     description: Greets the user
+     type: Commandir.Builtins.Shell
+     parameters:
+        greeting: "Hello "
+        command: "echo {{greeting}} {{name}}"
+     arguments:
+        - name: name
+          description: The user's name
+     options:
+        -  name: greeting
+           description: The greeting
+           required: false
+```
+Arguments are required while options are optional by default. They can be made required by adding `required: true` to the option.  
+
+Running the `greet` command:
+```
+arisilver@penguin:~/dev/commandir/src/Commandir$ ./bin/Debug/net6.0/Commandir greet "John Smith"
+Hello John Smith
+```
+
+The `greeting` defaults to "Hello " but can be optionally overridden by the `--greeting` option: 
+```
+arisilver@penguin:~/dev/commandir/src/Commandir$ ./bin/Debug/net6.0/Commandir greet "John Smith" --greeting "Hey!"
+Hey! John Smith
+```
+
+This example also demonstrates the relationship between parameters, arguments and options. Named Parameters specify a default value while Arguments and Options with the same name override the default value. Here is the verbose logging for the `greet` command:
+```
+arisilver@penguin:~/dev/commandir/src/Commandir$ ./bin/Debug/net6.0/Commandir --verbose greet "John
+ Smith" --greeting "Hey!"
+Commandir.CommandBuilder: Creating Command: greet Arguments: [name] Options: [greeting] Commands: []
+Commandir.CommandProvider: Adding Command: Commandir.Builtins.Echo
+Commandir.CommandProvider: Adding Command: Commandir.Builtins.Shell
+Commandir.CommandExecutor: Executing Command: Name: greet Type: Commandir.Builtins.Shell
+Commandir.CommandExecutor: Adding Parameter: Name: greeting Value: Hello  IsOverride: False
+Commandir.CommandExecutor: Adding Parameter: Name: command Value: echo {{greeting}} {{name}} IsOverride: False
+Commandir.CommandExecutor: Adding Argument: Name: name Value: John Smith IsOverride: False
+Commandir.CommandExecutor: Adding Option: Name: greeting Value: Hey! IsOverride: True
+Commandir.Builtins.Shell: Wrote command: echo Hey! John Smith to file: /tmp/tmp1U8fCt.tmp
+Commandir.Builtins.Shell: Executing command: echo Hey! John Smith
+Hey! John Smith
+Commandir.Builtins.Shell: Deleting file: /tmp/tmp1U8fCt.tmp
+``` 
