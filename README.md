@@ -6,7 +6,8 @@ Simple Command Runner
 Commandir lets you define commands in a Commandir.yaml file and execute them via the Commandir CLI. 
 
 Here is the Commandir.yaml file for the canonical Hello World example:
-'''
+
+```
 ---
 commands:
    - name: hello
@@ -14,5 +15,5 @@ commands:
      type: Commandir.Builtins.Shell
      parameters:
         command: echo "Hello World!"
-'''
+```
 
