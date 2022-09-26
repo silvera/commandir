@@ -1,18 +1,11 @@
 ---
 description: Sample Commands
 commands:
-   - name: echo
-     commands:
-        - name: builtin 
-          description: Echoes the message using the builtin Echo command
-          type: Commandir.Builtins.Echo
-          parameters:
-             message: Hello World!
-        - name: shell 
-          description: Echoes the message using the system's 'echo' command
-          type: Commandir.Builtins.Shell
-          parameters:
-             command: "echo Hello World!"
+   - name: hello
+     description: Prints 'Hello World'
+     type: Commandir.Builtins.Shell
+     parameters:
+        command: echo "Hello World!"
    - name: greet
      description: Greets the user
      type: Commandir.Builtins.Shell
