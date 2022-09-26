@@ -105,3 +105,5 @@ Commandir.Builtins.Shell: Executing command: echo Hey! John Smith
 Hey! John Smith
 Commandir.Builtins.Shell: Deleting file: /tmp/tmp1U8fCt.tmp
 ``` 
+
+Commandir currently supports executing commands via the `bash` shell only. Automatic support for Windows (i.e. use cmd.exe by default), as well as the ability to specify a particlar shell, e.g. `sh` or `powershell.exe` is forthcoming.
