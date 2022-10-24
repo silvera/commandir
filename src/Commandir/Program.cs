@@ -60,19 +60,22 @@ namespace Commandir
         }
 
         private static CommandLineBuilder BuildCommandLine(ILoggerFactory loggerFactory, Action<Commandir.Core.CommandResult> commandResultHandler)
-        {
-            CommandDefinition? rootDefinition = new CommandDefinitionBuilder()
-                                .AddYamlFile(Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml"))
-                                .Build();
-            
-            CommandLineCommand rootCommand = new CommandBuilder(loggerFactory, rootDefinition)
-                                .Build();
-            
+        {       
+            Result<CommandDefinition> rootDefinition = new YamlCommandDefinitionProvider()
+                .FromFile(Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml"));
+            if(rootDefinition.HasError)
+                throw rootDefinition.ToException();
+
+            Result<CommandLineCommand> rootCommand = new CommandLineCommandProvider()
+                .FromCommandDefinition(rootDefinition.Value, loggerFactory);
+            if(rootCommand.HasError)
+                throw rootCommand.ToException();
+
             CommandProvider commandProvider = new CommandProvider(loggerFactory);
             commandProvider.AddCommands(typeof(Program).Assembly);
             
-            CommandExecutor commandExecutor = new CommandExecutor(loggerFactory, commandProvider, rootCommand, commandResultHandler);
-            return new CommandLineBuilder(rootCommand);
+            CommandExecutor commandExecutor = new CommandExecutor(loggerFactory, commandProvider, rootCommand.Value, commandResultHandler);
+            return new CommandLineBuilder(rootCommand.Value);
         }
     }
 }

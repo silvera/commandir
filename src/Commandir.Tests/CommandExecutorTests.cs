@@ -23,11 +23,16 @@ namespace Commandir.Tests
 
             CommandProvider commandProvider = new CommandProvider(loggerFactory);
             commandProvider.AddCommands(typeof(Commandir.Program).Assembly);
-            CommandDefinition rootDefinition = new CommandDefinitionBuilder().AddYaml(yaml).Build();
-            CommandLineCommand rootCommand = new CommandBuilder(loggerFactory, rootDefinition).Build();
-            CommandExecutor commandExecutor = new CommandExecutor( loggerFactory, commandProvider, rootCommand, commandResultHandler);
+            Result<CommandDefinition> rootDefinition = new YamlCommandDefinitionProvider()
+                .FromString(yaml);
+            Assert.False(rootDefinition.HasError);
+            
+            Result<CommandLineCommand> rootCommand = new CommandLineCommandProvider().FromCommandDefinition(rootDefinition.Value, loggerFactory);
+            Assert.False(rootCommand.HasError);
 
-            return new CommandLineBuilder(rootCommand)
+            CommandExecutor commandExecutor = new CommandExecutor( loggerFactory, commandProvider, rootCommand.Value, commandResultHandler);
+
+            return new CommandLineBuilder(rootCommand.Value)
                         .UseHost(host => 
                         {
                             host.ConfigureServices(services =>
@@ -74,7 +79,7 @@ namespace Commandir.Tests
             await parser.InvokeAsync(new string[] { "test", "argument"});
 
             Assert.NotNull(commandResult);
-            Assert.True(commandResult.Context.Parameters.TryGetValue("message", out object? messageObj));
+            Assert.True(commandResult!.Context.Parameters.TryGetValue("message", out object? messageObj));
             Assert.Equal("argument", Convert.ToString(messageObj));
         }
 
@@ -99,7 +104,7 @@ namespace Commandir.Tests
             await parser.InvokeAsync(new string[] { "test", "argument", "--message", "option"});
 
             Assert.NotNull(commandResult);
-            Assert.True(commandResult.Context.Parameters.TryGetValue("message", out object? messageObj));
+            Assert.True(commandResult!.Context.Parameters.TryGetValue("message", out object? messageObj));
             Assert.Equal("option", Convert.ToString(messageObj));
         }
 
@@ -120,7 +125,7 @@ namespace Commandir.Tests
             await parser.InvokeAsync(new string[] { "test" });
 
             Assert.NotNull(commandResult);
-            Assert.Equal("Hello World", Convert.ToString(commandResult.ReturnValue));
+            Assert.Equal("Hello World", Convert.ToString(commandResult!.ReturnValue));
         }
 
         [Fact]
@@ -140,13 +145,14 @@ namespace Commandir.Tests
             await parser.InvokeAsync(new string[] { "test" });
 
             Assert.NotNull(commandResult);
-            Assert.Equal("echo Hello World", Convert.ToString(commandResult.ReturnValue));
+            Assert.Equal("echo Hello World", Convert.ToString(commandResult!.ReturnValue));
         }
 
         [Fact]
         public async Task Integration_Shell_Uses_Formatted_Value()
         {
             string tempFile = Path.GetTempFileName();
+            
             string yaml = $@"---
                 commands:
                    - name: test

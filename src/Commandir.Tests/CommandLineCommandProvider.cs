@@ -3,28 +3,28 @@ using Commandir.Core;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.IO;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Commandir.Tests
 {
-    public class CommandBuilderTests
+    public class CommandLineCommandProviderTests
     {
-        private CommandBuilder CreateCommandBuilder(CommandDefinition rootDefinition)
-        {
-            ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-            return new CommandBuilder(loggerFactory, rootDefinition);
-        }
-
         [Fact]
         public void FromFile()
         {
-            CommandDefinition rootDefinition = new CommandDefinitionBuilder()
-            .AddYamlFile(Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml"))
-            .Build()!;
+            string filePath = Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml");
+            Result<CommandDefinition> rootDefinition = new YamlCommandDefinitionProvider()
+                .FromFile(filePath);
 
-            CommandLineCommand rootCommand = CreateCommandBuilder(rootDefinition).Build();
-            ValidateCommand(rootCommand);
+            Assert.False(rootDefinition.HasError);
+
+            ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            Result<CommandLineCommand> rootCommand = new CommandLineCommandProvider()
+                .FromCommandDefinition(rootDefinition.Value, loggerFactory);
+
+            Assert.False(rootCommand.HasError);
+
+            ValidateCommand(rootCommand.Value);
         }
 
         private void ValidateCommand(CommandLineCommand root)

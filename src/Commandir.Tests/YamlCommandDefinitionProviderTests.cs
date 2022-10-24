@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Commandir.Tests
 {
-    public class CommandDefinitionBuilderTests
+    public class YamlCommandDefinitionProviderTests
     {
         [Fact]
         public void FromString()
@@ -27,10 +27,9 @@ namespace Commandir.Tests
                                required: true
             ";
 
-            CommandDefinition root = new CommandDefinitionBuilder()
-            .AddYaml(yaml)
-            .Build()!;
-            
+            Result<CommandDefinition> root = new YamlCommandDefinitionProvider()
+                .FromString(yaml);
+                        
             ValidateCommandDefinition(root);
         }
 
@@ -38,15 +37,18 @@ namespace Commandir.Tests
         public void FromFile()
         {
             string filePath = Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml");
-            CommandDefinition root = new CommandDefinitionBuilder()
-            .AddYamlFile(filePath)
-            .Build()!;
+            Result<CommandDefinition> root = new YamlCommandDefinitionProvider()
+                .FromFile(filePath);
 
             ValidateCommandDefinition(root);
         }
 
-        private void ValidateCommandDefinition(CommandDefinition root)
+        private void ValidateCommandDefinition(Result<CommandDefinition> result)
         {
+            Assert.False(result.HasError);
+
+            CommandDefinition root = result.Value;
+
             Assert.Equal("root", root.Description);
             
             CommandDefinition command1 = root.Commands[0];
