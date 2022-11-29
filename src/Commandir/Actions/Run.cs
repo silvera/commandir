@@ -7,7 +7,6 @@ namespace Commandir.Actions;
 
 public sealed class Run : IActionHandler
 {
-
     public async Task<ActionResponse> HandleAsync(ActionRequest request)
     {
         var loggerFactory = request.Services.GetRequiredService<ILoggerFactory>();
@@ -21,39 +20,48 @@ public sealed class Run : IActionHandler
 
         string? command = Convert.ToString(commandObj);
         if(command == null)
-            throw new Exception ("Failed convert parameter `command` to a string.");
+            throw new Exception("Failed convert parameter `command` to a string.");
 
         string shell = "bash";
 
         var templateFormatter = request.Services.GetRequiredService<ITemplateFormatter2>();
         string formattedCommand = templateFormatter.Format(command, parameterProvider.GetParameters());
 
-        // Create a temporary file.
-        string tempFile = Path.GetTempFileName();
+        // Create a new file in the current directory.
+        Guid guid = Guid.NewGuid();
+        string tempFileName = $"commandir_run_{guid}";
+        string tempFilePath = Path.Combine(Directory.GetCurrentDirectory(), tempFileName);
         
         // Write the contents of the command to the file.
-        using (var writer = new StreamWriter(tempFile))
+        logger.LogInformation("Creating file: {TempFile}", tempFilePath);
+        using (var writer = new StreamWriter(tempFilePath))
         {
             writer.WriteLine(formattedCommand);
-            logger.LogInformation("Wrote command: {Command} to file: {TempFile}", formattedCommand, tempFile);
         }
 
-        logger.LogInformation("Executing command: {Command}", formattedCommand);
-
-        using var process = Process.Start(new ProcessStartInfo
+        // Create a new response with ExitCode = -1;
+        var response = new ActionResponse { Value = -1 };
+        try
         {
-            UseShellExecute = false,
-            FileName = shell,
-            ArgumentList = { tempFile }
-        });
-        if(process == null)
-            throw new Exception($"Failed to create process: {shell} with arguments: {tempFile}");
+            var process = Process.Start(new ProcessStartInfo
+            {
+                UseShellExecute = false,
+                FileName = shell,
+                ArgumentList = { tempFilePath }
+            });
 
-        await process.WaitForExitAsync(request.CancellationToken);
+            if(process == null)
+                throw new Exception($"Failed to create process: {shell} with arguments: {tempFilePath}");
+    
+            await process.WaitForExitAsync(request.CancellationToken);
+            response.Value = process.ExitCode;
+        }
+        finally
+        {
+            logger.LogInformation("Deleting file: {TempFile}", tempFilePath);
+            File.Delete(tempFilePath);
+        }
 
-        logger.LogInformation("Deleting file: {TempFile}", tempFile);
-        File.Delete(tempFile);
-
-        return new ActionResponse();
+        return response;
     }
 }

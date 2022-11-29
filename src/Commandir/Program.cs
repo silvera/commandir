@@ -2,7 +2,6 @@
 using Commandir.Interfaces;
 using Commandir.Services;
 using Commandir.Yaml;
-
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -17,8 +16,9 @@ namespace Commandir
 {
     public class Program
     {
-        
-        public static async Task<int> Main(string[] args)
+        private static Microsoft.Extensions.Logging.ILogger? s_logger;
+
+        public static async Task Main(string[] args)
         {
             Serilog.Events.LogEventLevel commandirLogLevel = Serilog.Events.LogEventLevel.Information;
             if(args.Length > 0)
@@ -30,44 +30,34 @@ namespace Commandir
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Override("Commandir", commandirLogLevel)
                 .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Error)
-                .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Error)
                 .WriteTo.Console(outputTemplate: "{SourceContext}: {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
 
-            Log.Logger = logger;
             ILoggerFactory loggerFactory = new LoggerFactory().AddSerilog(logger);
-
-            Commandir.Core.CommandResult? commandResult = null;
+            s_logger = loggerFactory.CreateLogger<Program>();
 
             try
             {
-                await BuildCommandLine(loggerFactory, i => commandResult = i)
+                await BuildCommandLine()
                 .UseHost(host => {
                     host.UseSerilog(logger);
                     host.ConfigureServices(services =>
                     {
-                        services.AddSingleton<IParameterProvider, ParameterProvider>();
-                        services.AddSingleton<IActionHandlerProvider, ActionHandlerProvider>();
-                        services.AddSingleton<ITemplateFormatter2, StubbleTemplateFormatter2>();
+                        services.AddCommandirServices();
                     });
                 })
                 .UseDefaults()
                 .Build()
                 .InvokeAsync(args);
-
-                return commandResult?.ReturnCode ?? 1;
             }
             catch(Exception e)
             {
-                loggerFactory
-                    .CreateLogger<Program>()
-                    .LogCritical("{ExceptionType}: {Message}", e.GetType().Name,  e.Message);
-                
-                return 1;
+                s_logger.LogCritical("{ExceptionType}: {Message}", e.GetType().Name,  e.Message);
             }
         }
 
-        private static CommandLineBuilder BuildCommandLine(ILoggerFactory loggerFactory, Action<Commandir.Core.CommandResult> commandResultHandler)
+        private static CommandLineBuilder BuildCommandLine()
         {       
             string yamlFile = Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml");
             string yaml = File.ReadAllText(yamlFile);
@@ -115,9 +105,12 @@ namespace Commandir
                 } 
             }
 
-            var request = new ActionRequest(services, default(CancellationToken));
+            var request = new ActionRequest(services, invocationContext.GetCancellationToken());
             var response = await action.HandleAsync(request);
-            Console.WriteLine($"Received response: {response}");
+            if(response.Value is int exitCode)
+            {
+                s_logger?.LogInformation("Response: ExitCode: {ExitCode}", exitCode);
+            }
         }
     }
 }

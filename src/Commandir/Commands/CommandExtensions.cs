@@ -1,3 +1,7 @@
+using Commandir.Interfaces;
+using Commandir.Services;
+
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
@@ -30,4 +34,15 @@ internal static class CommandExtensions
             }
         }
     }
+}
+
+internal static class ServiceExtensions
+{
+    public static IServiceCollection AddCommandirServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IActionHandlerProvider, ActionHandlerProvider>();
+        services.AddSingleton<IParameterProvider, ParameterProvider>();
+        services.AddSingleton<ITemplateFormatter2, StubbleTemplateFormatter2>();
+        return services;
+    }     
 }
