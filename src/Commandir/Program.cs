@@ -1,4 +1,8 @@
-﻿using Commandir.Core;
+﻿using Commandir.Commands;
+using Commandir.Interfaces;
+using Commandir.Services;
+using Commandir.Yaml;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -6,12 +10,14 @@ using Serilog;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
+using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 
 namespace Commandir
 {
     public class Program
     {
+        
         public static async Task<int> Main(string[] args)
         {
             Serilog.Events.LogEventLevel commandirLogLevel = Serilog.Events.LogEventLevel.Information;
@@ -40,7 +46,9 @@ namespace Commandir
                     host.UseSerilog(logger);
                     host.ConfigureServices(services =>
                     {
-                        services.AddSingleton<ITemplateFormatter, StubbleTemplateFormatter>();
+                        services.AddSingleton<IParameterProvider, ParameterProvider>();
+                        services.AddSingleton<IActionHandlerProvider, ActionHandlerProvider>();
+                        services.AddSingleton<ITemplateFormatter2, StubbleTemplateFormatter2>();
                     });
                 })
                 .UseDefaults()
@@ -53,7 +61,7 @@ namespace Commandir
             {
                 loggerFactory
                     .CreateLogger<Program>()
-                    .LogCritical("Error: {Error}", e.Message);
+                    .LogCritical("{ExceptionType}: {Message}", e.GetType().Name,  e.Message);
                 
                 return 1;
             }
@@ -61,21 +69,55 @@ namespace Commandir
 
         private static CommandLineBuilder BuildCommandLine(ILoggerFactory loggerFactory, Action<Commandir.Core.CommandResult> commandResultHandler)
         {       
-            Result<CommandDefinition> rootDefinition = new YamlCommandDefinitionProvider()
-                .FromFile(Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml"));
-            if(rootDefinition.HasError)
-                throw rootDefinition.ToException();
-
-            Result<CommandLineCommand> rootCommand = new CommandLineCommandProvider()
-                .FromCommandDefinition(rootDefinition.Value, loggerFactory);
-            if(rootCommand.HasError)
-                throw rootCommand.ToException();
-
-            CommandProvider commandProvider = new CommandProvider(loggerFactory);
-            commandProvider.AddCommands(typeof(Program).Assembly);
+            string yamlFile = Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml");
+            string yaml = File.ReadAllText(yamlFile);
             
-            CommandExecutor commandExecutor = new CommandExecutor(loggerFactory, commandProvider, rootCommand.Value, commandResultHandler);
-            return new CommandLineBuilder(rootCommand.Value);
+            var rootCommand = YamlCommandParser.Parse(yaml);
+            rootCommand.SetHandlers(HandleInvocationAsync, e => Console.WriteLine(e.Message));
+            return new CommandLineBuilder(rootCommand);
+        }
+
+        private static async Task HandleInvocationAsync(IServiceProvider services)
+        {
+            var invocationContext = services.GetRequiredService<InvocationContext>();
+            var parseResult = invocationContext.ParseResult;
+            var command = (CommandirCommand)parseResult.CommandResult.Command;
+            
+            var actionHandlerProvider = services.GetRequiredService<IActionHandlerProvider>();
+            var actionName = command.Action!;
+            var action = actionHandlerProvider.GetAction(actionName);
+            if(action == null)
+                throw new ArgumentException($"Failed to find action: {actionName}");
+          
+            var parameterProvider = services.GetRequiredService<IParameterProvider>();
+            foreach(var pair in command.Parameters)
+            {
+                if(pair.Value != null)
+                    parameterProvider.AddOrUpdateParameter(pair.Key, pair.Value);
+            }
+
+            // Add command line parameters after command parameters so they can override the parameters.
+            foreach(Argument argument in command.Arguments)
+            {
+                object? value = parseResult.GetValueForArgument(argument);
+                if(value != null)
+                {
+                    parameterProvider.AddOrUpdateParameter(argument.Name, value);
+                }
+            }
+
+            foreach(Option option in command.Options)
+            {
+                object? value = parseResult.GetValueForOption(option);
+                if(value != null)
+                {
+                    parameterProvider.AddOrUpdateParameter(option.Name, value);
+                } 
+            }
+
+            var request = new ActionRequest(services, default(CancellationToken));
+            var response = await action.HandleAsync(request);
+            Console.WriteLine($"Received response: {response}");
         }
     }
 }

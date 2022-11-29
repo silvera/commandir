@@ -3,12 +3,12 @@ description: Sample Commands
 commands:
    - name: hello
      description: Prints 'Hello World'
-     type: Commandir.Builtins.Shell
+     type: commandir.actions.run
      parameters:
         command: echo "Hello World!"
    - name: greet
      description: Greets the user
-     type: Commandir.Builtins.Shell
+     type: commandir.actions.run
      parameters:
         greeting: "Hello "
         command: "echo {{greeting}} {{name}}"
