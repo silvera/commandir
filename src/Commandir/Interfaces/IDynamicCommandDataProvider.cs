@@ -8,10 +8,10 @@ public interface IDynamicCommandData
 
 public interface IDynamicCommandDataProvider
 {
-    IDynamicCommandData GetCommandData();
+    IDynamicCommandData? GetCommandData();
 }
 
 public interface ICancellationTokenProvider
 {
-    CancellationToken GetCancellationToken();
+    CancellationToken? GetCancellationToken();
 }

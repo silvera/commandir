@@ -33,20 +33,20 @@ internal static class CommandExtensions
 
     internal static string GetPath(this Command command)
     {
-        List<string> names = new List<string> { command.Name };
-        command.GetParentNames(names);
-        names.Reverse();
-        return "/" + string.Join("/", names); 
+        List<string> components = new List<string>();
+        command.GetPathComponents(components);
+        components.Reverse();
+        return string.Concat(components);
     }
 
-    private static void GetParentNames(this Command command, List<string> names)
+    private static void GetPathComponents(this Command command, List<string> names)
     {
+        names.Add($"/{command.Name}");
         foreach(var parent in command.Parents)
         {
             if(parent is Command parentCommand)
             {
-                names.Add(parentCommand.Name);
-                parentCommand.GetParentNames(names);
+                parentCommand.GetPathComponents(names);
             }
         }
     }

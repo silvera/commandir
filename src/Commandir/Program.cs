@@ -72,16 +72,22 @@ namespace Commandir
             {
                 var dynamicCommandProvider = services.GetRequiredService<IDynamicCommandDataProvider>();
                 var dynamicCommandData = dynamicCommandProvider.GetCommandData();
+                if(dynamicCommandData == null)
+                    throw new Exception("Failed to obtain dynamic command data");
                 
                 var cancellationTokenProvider = services.GetRequiredService<ICancellationTokenProvider>();
                 var cancellationToken = cancellationTokenProvider.GetCancellationToken();
+                if(cancellationToken == null)
+                    throw new Exception($"Failed to obtain cancellation token.");
 
                 var commandDataProvider = services.GetRequiredService<ICommandDataProvider<YamlCommandData>>();
                 var commandData = commandDataProvider.GetCommandData(dynamicCommandData!.Path);
+                if(commandData == null)
+                    throw new Exception($"Failed to find command data data using path: {dynamicCommandData!.Path}");
 
                 var parameterProvider = services.GetRequiredService<IParameterProvider>();
-                parameterProvider.AddOrUpdateParameters(commandData!.Parameters!);
-                parameterProvider.AddOrUpdateParameters(dynamicCommandData!.Parameters);
+                parameterProvider.AddOrUpdateParameters(commandData.Parameters);
+                parameterProvider.AddOrUpdateParameters(dynamicCommandData.Parameters);
 
                 var actionProvider = services.GetRequiredService<IActionProvider>();
                 var action = actionProvider.GetAction(commandData.Type!);

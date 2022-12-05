@@ -26,12 +26,12 @@ public sealed class CommandLineCommandDataProvider : IDynamicCommandDataProvider
         _invocationContext = invocationContext;
     }
 
-    public CancellationToken GetCancellationToken()
+    public CancellationToken? GetCancellationToken()
     {
         return _invocationContext.GetCancellationToken();
     }
 
-    public IDynamicCommandData GetCommandData()
+    public IDynamicCommandData? GetCommandData()
     {
         var parseResult = _invocationContext.ParseResult;
         var command = parseResult.CommandResult.Command;

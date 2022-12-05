@@ -14,7 +14,7 @@ public sealed class Run : IAction
 
         var cancellationTokenProvider = services.GetRequiredService<ICancellationTokenProvider>();
         var cancellationToken = cancellationTokenProvider.GetCancellationToken();
- 
+
         var parameterProvider = services.GetRequiredService<IParameterProvider>();
 
         object? commandObj = parameterProvider.GetParameter("command");
@@ -53,7 +53,7 @@ public sealed class Run : IAction
             if(process == null)
                 throw new Exception($"Failed to create process: {shell} with arguments: {tempFilePath}");
     
-            await process.WaitForExitAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken!.Value);
             return process.ExitCode;
         }
         finally
