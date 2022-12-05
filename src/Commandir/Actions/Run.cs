@@ -15,6 +15,9 @@ public sealed class Run : IAction
         var cancellationTokenProvider = services.GetRequiredService<ICancellationTokenProvider>();
         var cancellationToken = cancellationTokenProvider.GetCancellationToken();
 
+        var dynamicCommandProvider = services.GetRequiredService<IDynamicCommandDataProvider>();
+        var dynamicCommandData = dynamicCommandProvider.GetCommandData();
+
         var parameterProvider = services.GetRequiredService<IParameterProvider>();
 
         object? commandObj = parameterProvider.GetParameter("command");
@@ -30,13 +33,13 @@ public sealed class Run : IAction
         string formattedCommand = parameterProvider.InterpolateParameters(command);
 
         // Create a new file in the current directory.
-        Guid guid = Guid.NewGuid();
-        string tempFileName = $"commandir_run_{guid}";
-        string tempFilePath = Path.Combine(Directory.GetCurrentDirectory(), tempFileName);
+        string path = dynamicCommandData!.Path.Replace("/", "_");
+        string scriptFileName = $"commandir{path}.sh";
+        string scriptFilePath = Path.Combine(Directory.GetCurrentDirectory(), scriptFileName);
         
         // Write the contents of the command to the file.
-        logger.LogInformation("Creating file: {TempFile}", tempFilePath);
-        using (var writer = new StreamWriter(tempFilePath))
+        logger.LogInformation("Creating file: {ScriptFile}", scriptFilePath);
+        using (var writer = new StreamWriter(scriptFilePath))
         {
             writer.WriteLine(formattedCommand);
         }
@@ -47,19 +50,19 @@ public sealed class Run : IAction
             {
                 UseShellExecute = false,
                 FileName = shell,
-                ArgumentList = { tempFilePath }
+                ArgumentList = { scriptFilePath }
             });
 
             if(process == null)
-                throw new Exception($"Failed to create process: {shell} with arguments: {tempFilePath}");
+                throw new Exception($"Failed to create process: {shell} with arguments: {scriptFilePath}");
     
             await process.WaitForExitAsync(cancellationToken!.Value);
             return process.ExitCode;
         }
         finally
         {
-            logger.LogInformation("Deleting file: {TempFile}", tempFilePath);
-            File.Delete(tempFilePath);
+            logger.LogInformation("Deleting file: {ScriptFile}", scriptFilePath);
+            File.Delete(scriptFilePath);
         }
     }
 }
