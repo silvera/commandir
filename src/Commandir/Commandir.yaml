@@ -2,15 +2,10 @@
 description: Sample Commands
 commands:
    - name: hello
-     #description: Prints 'Hello World'
+     description: Prints 'Hello World'
      type: commandir.actions.run
-     #parameters:
-     #   command: echo "Hello World!"
-     commands:
-        - name: world
-          type: commandir.actions.run
-          parameters:
-             command: echo "Hey there!"
+     parameters:
+        command: echo "Hello World!"
    - name: greet
      description: Greets the user
      type: commandir.actions.run
