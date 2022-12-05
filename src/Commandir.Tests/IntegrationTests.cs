@@ -31,20 +31,22 @@ public class IntegrationTests
                 var cancellationToken = cancellationTokenProvider.GetCancellationToken();
 
                 var commandDataProvider = services.GetRequiredService<ICommandDataProvider<YamlCommandData>>();
-                var commandData = commandDataProvider.GetCommandData(dynamicCommandData!.Path);
+                var commandData = commandDataProvider.GetCommandData(dynamicCommandData!.Path!);
 
                 var parameterProvider = services.GetRequiredService<IParameterProvider>();
                 parameterProvider.AddOrUpdateParameters(commandData!.Parameters!);
                 parameterProvider.AddOrUpdateParameters(dynamicCommandData!.Parameters!);
 
                 var actionProvider = services.GetRequiredService<IActionProvider>();
-                var action = actionProvider.GetAction(commandData.Type!);
+                var actionType = commandData.Action!;
+                var action = actionProvider.GetAction(actionType);
                 if(action == null)
-                    throw new Exception($"Failed to find action: {commandData.Type!}");
-                
+                    throw new Exception($"Failed to find action: {actionType}");
+
                 await action.ExecuteAsync(services);
             }, exception => 
             {
+                Console.WriteLine($"Exception = {exception}");
             });
 
 
@@ -72,7 +74,7 @@ public class IntegrationTests
         string yaml = $@"---
             commands:
                - name: greet
-                 type: commandir.actions.run
+                 action: commandir.actions.run
                  parameters:
                     greeting: Hello
                     command: echo {{{{greeting}}}} {{{{name}}}} > {tempFile}
@@ -96,7 +98,7 @@ public class IntegrationTests
         string yaml = $@"---
             commands:
                - name: greet
-                 type: commandir.actions.run
+                 action: commandir.actions.run
                  parameters:
                     greeting: Hello
                     command: echo {{{{greeting}}}} {{{{name}}}} > {tempFile}
@@ -120,10 +122,10 @@ public class IntegrationTests
         string yaml = $@"---
             commands:
                - name: hello
-                 type: commandir.actions.run
+                 action: commandir.actions.run
                  commands:
                     - name: world
-                      type: commandir.actions.run
+                      action: commandir.actions.run
                       parameters:
                          command: echo Hello World > {tempFile}
         ";

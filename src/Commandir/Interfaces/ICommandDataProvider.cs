@@ -2,7 +2,7 @@ namespace Commandir.Interfaces;
 
 public interface ICommandData
 {
-    string? Type { get; }
+    string? Action { get; }
     Dictionary<string, object?>? Parameters { get; }
 }
 

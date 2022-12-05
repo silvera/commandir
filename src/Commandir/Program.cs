@@ -74,25 +74,22 @@ namespace Commandir
                 var dynamicCommandData = dynamicCommandProvider.GetCommandData();
                 if(dynamicCommandData == null)
                     throw new Exception("Failed to obtain dynamic command data");
-                
-                var cancellationTokenProvider = services.GetRequiredService<ICancellationTokenProvider>();
-                var cancellationToken = cancellationTokenProvider.GetCancellationToken();
-                if(cancellationToken == null)
-                    throw new Exception($"Failed to obtain cancellation token.");
-
+                    
                 var commandDataProvider = services.GetRequiredService<ICommandDataProvider<YamlCommandData>>();
-                var commandData = commandDataProvider.GetCommandData(dynamicCommandData!.Path);
+                var commandPath = dynamicCommandData.Path;
+                var commandData = commandDataProvider.GetCommandData(commandPath);
                 if(commandData == null)
-                    throw new Exception($"Failed to find command data data using path: {dynamicCommandData!.Path}");
+                    throw new Exception($"Failed to find command data data using path: {commandPath}");
 
                 var parameterProvider = services.GetRequiredService<IParameterProvider>();
                 parameterProvider.AddOrUpdateParameters(commandData.Parameters);
                 parameterProvider.AddOrUpdateParameters(dynamicCommandData.Parameters);
 
                 var actionProvider = services.GetRequiredService<IActionProvider>();
-                var action = actionProvider.GetAction(commandData.Type!);
+                var actionType = commandData.Action!;
+                var action = actionProvider.GetAction(actionType);
                 if(action == null)
-                    throw new Exception($"Failed to find action: {commandData.Type!}");
+                    throw new Exception($"Failed to find action: {actionType}");
                 
                 var result = await action.ExecuteAsync(services); 
                 s_logger?.LogInformation("Result: {Result}", result);
