@@ -59,26 +59,4 @@ public sealed class CommandLineCommandDataProvider : IDynamicCommandDataProvider
         path = path.Replace("/Commandir", string.Empty);
         return new CommandLineCommandData(path, parameters);         
     }
-
-    private static string GetPath(Command command)
-    {
-        List<string> names = new List<string> { command.Name };
-        GetCommandNames(command, names);
-        names.RemoveAt(names.Count - 1); // Remove "Commandir" entry.
-        names.Reverse();
-        string path = string.Join("/", names); 
-        return "/{path}";
-    }
-
-    private static void GetCommandNames(Command command, List<string> names)
-    {
-        foreach(var parent in command.Parents)
-        {
-            if(parent is Command parentCommand)
-            {
-                names.Add(parentCommand.Name);
-                GetCommandNames(parentCommand, names);
-            }
-        }
-    }
 }

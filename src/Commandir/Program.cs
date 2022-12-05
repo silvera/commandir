@@ -9,7 +9,6 @@ using Serilog;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
-using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 
 
@@ -18,7 +17,7 @@ namespace Commandir
     public class Program
     { 
         private static Microsoft.Extensions.Logging.ILogger? s_logger;
-        private static YamlCommandDataProvider s_commandDataProvider;
+        private static YamlCommandDataProvider? s_commandDataProvider;
 
         public static async Task Main(string[] args)
         {
@@ -66,8 +65,8 @@ namespace Commandir
 
         private static CommandLineBuilder BuildCommandLine()
         {       
-            var rootCommandData = s_commandDataProvider.GetRootCommandData();
-            var rootCommand = YamlCommandBuilder.Build(rootCommandData);
+            var rootCommandData = s_commandDataProvider?.GetRootCommandData();
+            var rootCommand = YamlCommandBuilder.Build(rootCommandData!);
 
             rootCommand.SetHandlers(async services =>
             {
@@ -82,7 +81,7 @@ namespace Commandir
 
                 var parameterProvider = services.GetRequiredService<IParameterProvider>();
                 parameterProvider.AddOrUpdateParameters(commandData!.Parameters!);
-                parameterProvider.AddOrUpdateParameters(dynamicCommandData!.Parameters!);
+                parameterProvider.AddOrUpdateParameters(dynamicCommandData!.Parameters);
 
                 var actionProvider = services.GetRequiredService<IActionProvider>();
                 var action = actionProvider.GetAction(commandData.Type!);
@@ -97,57 +96,6 @@ namespace Commandir
                 s_logger?.LogError(exception, "");
             });
             return new CommandLineBuilder(rootCommand);
-        }
-
-        private static void HandleException(Exception e)
-        {
-            s_logger?.LogError(e, "Exception: ");
-        }
-
-        private static async Task HandleInvocationAsync(IServiceProvider services)
-        {
-            var invocationContext = services.GetRequiredService<InvocationContext>();
-            var parseResult = invocationContext.ParseResult;
-            var command = (CommandirCommand)parseResult.CommandResult.Command;
-            
-            var actionHandlerProvider = services.GetRequiredService<IActionHandlerProvider>();
-            var actionName = command.Action!;
-            var action = actionHandlerProvider.GetAction(actionName);
-            if(action == null)
-                throw new ArgumentException($"Failed to find action: {actionName}");
-          
-            var parameterProvider = services.GetRequiredService<IParameterProvider>();
-            foreach(var pair in command.Parameters)
-            {
-                if(pair.Value != null)
-                    parameterProvider.AddOrUpdateParameter(pair.Key, pair.Value);
-            }
-
-            // Add command line parameters after command parameters so they can override the parameters.
-            foreach(Argument argument in command.Arguments)
-            {
-                object? value = parseResult.GetValueForArgument(argument);
-                if(value != null)
-                {
-                    parameterProvider.AddOrUpdateParameter(argument.Name, value);
-                }
-            }
-
-            foreach(Option option in command.Options)
-            {
-                object? value = parseResult.GetValueForOption(option);
-                if(value != null)
-                {
-                    parameterProvider.AddOrUpdateParameter(option.Name, value);
-                } 
-            }
-
-            var request = new ActionRequest(services, invocationContext.GetCancellationToken());
-            var response = await action.HandleAsync(request);
-            if(response.Value is int exitCode)
-            {
-                s_logger?.LogInformation("Response: ExitCode: {ExitCode}", exitCode);
-            }
         }
     }
 }

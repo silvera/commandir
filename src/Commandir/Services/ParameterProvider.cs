@@ -6,26 +6,12 @@ namespace Commandir.Services;
 
 internal sealed class ParameterProvider : IParameterProvider
 {
-    private readonly ILogger _logger;
     private readonly Stubble.Core.StubbleVisitorRenderer _renderer;
     private readonly Dictionary<string, object?> _parameters = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
-    public ParameterProvider(ILoggerFactory loggerFactory)
+    public ParameterProvider()
     {
         _renderer = new StubbleBuilder().Build();
-        _logger = loggerFactory.CreateLogger<ParameterProvider>();
-    }
-
-    public void AddOrUpdateParameter(string name, object? value)
-    {
-        _parameters[name] = value;
-    }
-
-    
-
-    public Dictionary<string, object?> GetParameters()
-    {
-        return _parameters;
     }
 
     public void AddOrUpdateParameters(Dictionary<string, object?> parameters)

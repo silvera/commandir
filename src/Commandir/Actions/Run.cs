@@ -27,8 +27,7 @@ public sealed class Run : IAction
 
         string shell = "bash";
 
-        var templateFormatter = services.GetRequiredService<ITemplateFormatter2>();
-        string formattedCommand = templateFormatter.Format(command, parameterProvider.GetParameters());
+        string formattedCommand = parameterProvider.InterpolateParameters(command);
 
         // Create a new file in the current directory.
         Guid guid = Guid.NewGuid();

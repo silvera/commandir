@@ -9,7 +9,6 @@ public static class ServiceExtensions
     {
         services.AddSingleton<IActionProvider, ActionProvider>();
         services.AddSingleton<IParameterProvider, ParameterProvider>();
-        services.AddSingleton<ITemplateFormatter2, StubbleTemplateFormatter2>();
         return services;
     }
 
