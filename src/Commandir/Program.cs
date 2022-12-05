@@ -21,11 +21,11 @@ namespace Commandir
 
         public static async Task Main(string[] args)
         {
-            Serilog.Events.LogEventLevel commandirLogLevel = Serilog.Events.LogEventLevel.Information;
+            Serilog.Events.LogEventLevel commandirLogLevel = Serilog.Events.LogEventLevel.Warning;
             if(args.Length > 0)
             {
                 if(string.Equals(args[0], "--verbose", StringComparison.OrdinalIgnoreCase))
-                    commandirLogLevel = Serilog.Events.LogEventLevel.Verbose;
+                    commandirLogLevel = Serilog.Events.LogEventLevel.Information;
             }
 
             var logger = new LoggerConfiguration()

@@ -8,6 +8,7 @@ internal static class YamlCommandBuilder
     internal static Command Build(YamlCommandData rootData)
     {
         var rootCommand = new Command("Commandir", rootData.Description);
+        rootCommand.AddOption(new Option<bool>("--verbose", "Enables verbose logging."));
         foreach(YamlCommandData subData in rootData.Commands)
         {
             AddCommand(subData, rootCommand);
