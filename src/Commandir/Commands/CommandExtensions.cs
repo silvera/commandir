@@ -1,7 +1,3 @@
-using Commandir.Interfaces;
-using Commandir.Services;
-
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
@@ -34,15 +30,24 @@ internal static class CommandExtensions
             }
         }
     }
-}
 
-internal static class ServiceExtensions
-{
-    public static IServiceCollection AddCommandirServices(this IServiceCollection services)
+    internal static string GetPath(this Command command)
     {
-        services.AddSingleton<IActionHandlerProvider, ActionHandlerProvider>();
-        services.AddSingleton<IParameterProvider, ParameterProvider>();
-        services.AddSingleton<ITemplateFormatter2, StubbleTemplateFormatter2>();
-        return services;
-    }     
+        List<string> names = new List<string> { command.Name };
+        command.GetParentNames(names);
+        names.Reverse();
+        return "/" + string.Join("/", names); 
+    }
+
+    private static void GetParentNames(this Command command, List<string> names)
+    {
+        foreach(var parent in command.Parents)
+        {
+            if(parent is Command parentCommand)
+            {
+                names.Add(parentCommand.Name);
+                parentCommand.GetParentNames(names);
+            }
+        }
+    }
 }

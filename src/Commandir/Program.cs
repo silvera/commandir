@@ -12,11 +12,13 @@ using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 
+
 namespace Commandir
 {
     public class Program
-    {
+    { 
         private static Microsoft.Extensions.Logging.ILogger? s_logger;
+        private static YamlCommandDataProvider s_commandDataProvider;
 
         public static async Task Main(string[] args)
         {
@@ -37,6 +39,10 @@ namespace Commandir
             ILoggerFactory loggerFactory = new LoggerFactory().AddSerilog(logger);
             s_logger = loggerFactory.CreateLogger<Program>();
 
+            string yamlFile = Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml");
+            string yaml = File.ReadAllText(yamlFile);
+            s_commandDataProvider = new YamlCommandDataProvider(yaml);
+
             try
             {
                 await BuildCommandLine()
@@ -44,7 +50,8 @@ namespace Commandir
                     host.UseSerilog(logger);
                     host.ConfigureServices(services =>
                     {
-                        services.AddCommandirServices();
+                        services.AddCommandirBaseServices();
+                        services.AddCommandirDataServices(s_commandDataProvider);
                     });
                 })
                 .UseDefaults()
@@ -59,12 +66,42 @@ namespace Commandir
 
         private static CommandLineBuilder BuildCommandLine()
         {       
-            string yamlFile = Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml");
-            string yaml = File.ReadAllText(yamlFile);
-            
-            var rootCommand = YamlCommandParser.Parse(yaml);
-            rootCommand.SetHandlers(HandleInvocationAsync, e => Console.WriteLine(e.Message));
+            var rootCommandData = s_commandDataProvider.GetRootCommandData();
+            var rootCommand = YamlCommandBuilder.Build(rootCommandData);
+
+            rootCommand.SetHandlers(async services =>
+            {
+                var dynamicCommandProvider = services.GetRequiredService<IDynamicCommandDataProvider>();
+                var dynamicCommandData = dynamicCommandProvider.GetCommandData();
+                
+                var cancellationTokenProvider = services.GetRequiredService<ICancellationTokenProvider>();
+                var cancellationToken = cancellationTokenProvider.GetCancellationToken();
+
+                var commandDataProvider = services.GetRequiredService<ICommandDataProvider<YamlCommandData>>();
+                var commandData = commandDataProvider.GetCommandData(dynamicCommandData!.Path);
+
+                var parameterProvider = services.GetRequiredService<IParameterProvider>();
+                parameterProvider.AddOrUpdateParameters(commandData!.Parameters!);
+                parameterProvider.AddOrUpdateParameters(dynamicCommandData!.Parameters!);
+
+                var actionProvider = services.GetRequiredService<IActionProvider>();
+                var action = actionProvider.GetAction(commandData.Type!);
+                if(action == null)
+                    throw new Exception($"Failed to find action: {commandData.Type!}");
+                
+                var result = await action.ExecuteAsync(services); 
+                s_logger?.LogInformation("Result: {Result}", result);
+
+            }, exception => 
+            {
+                s_logger?.LogError(exception, "");
+            });
             return new CommandLineBuilder(rootCommand);
+        }
+
+        private static void HandleException(Exception e)
+        {
+            s_logger?.LogError(e, "Exception: ");
         }
 
         private static async Task HandleInvocationAsync(IServiceProvider services)

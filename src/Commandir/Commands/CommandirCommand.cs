@@ -1,3 +1,4 @@
+using Commandir.Interfaces;
 using System.CommandLine;
 
 namespace Commandir.Commands;

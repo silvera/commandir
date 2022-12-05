@@ -5,14 +5,17 @@ using System.Diagnostics;
 
 namespace Commandir.Actions;
 
-public sealed class Run : IActionHandler
+public sealed class Run : IAction
 {
-    public async Task<ActionResponse> HandleAsync(ActionRequest request)
+    public async Task<object?> ExecuteAsync(IServiceProvider services)
     {
-        var loggerFactory = request.Services.GetRequiredService<ILoggerFactory>();
+        var loggerFactory = services.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<Run>();
 
-        var parameterProvider = request.Services.GetRequiredService<IParameterProvider>();
+        var cancellationTokenProvider = services.GetRequiredService<ICancellationTokenProvider>();
+        var cancellationToken = cancellationTokenProvider.GetCancellationToken();
+ 
+        var parameterProvider = services.GetRequiredService<IParameterProvider>();
 
         object? commandObj = parameterProvider.GetParameter("command");
         if(commandObj == null)
@@ -24,7 +27,7 @@ public sealed class Run : IActionHandler
 
         string shell = "bash";
 
-        var templateFormatter = request.Services.GetRequiredService<ITemplateFormatter2>();
+        var templateFormatter = services.GetRequiredService<ITemplateFormatter2>();
         string formattedCommand = templateFormatter.Format(command, parameterProvider.GetParameters());
 
         // Create a new file in the current directory.
@@ -39,8 +42,6 @@ public sealed class Run : IActionHandler
             writer.WriteLine(formattedCommand);
         }
 
-        // Create a new response with ExitCode = -1;
-        var response = new ActionResponse { Value = -1 };
         try
         {
             var process = Process.Start(new ProcessStartInfo
@@ -53,15 +54,13 @@ public sealed class Run : IActionHandler
             if(process == null)
                 throw new Exception($"Failed to create process: {shell} with arguments: {tempFilePath}");
     
-            await process.WaitForExitAsync(request.CancellationToken);
-            response.Value = process.ExitCode;
+            await process.WaitForExitAsync(cancellationToken);
+            return process.ExitCode;
         }
         finally
         {
             logger.LogInformation("Deleting file: {TempFile}", tempFilePath);
             File.Delete(tempFilePath);
         }
-
-        return response;
     }
 }

@@ -1,6 +1,8 @@
+using Commandir.Interfaces;
+
 namespace Commandir.Yaml;
 
-internal sealed class YamlCommandData
+public sealed class YamlCommandData : ICommandData
 {   
     public string? Name { get; set; }
     public string? Description { get; set; }
@@ -11,13 +13,13 @@ internal sealed class YamlCommandData
     public List<YamlCommandData> Commands { get; set; } = new List<YamlCommandData>();
 }
 
-internal sealed class YamlArgumentData
+public sealed class YamlArgumentData
 {
     public string? Name { get; set; }
     public string? Description { get; set; }
 }
 
-internal sealed class YamlOptionData
+public sealed class YamlOptionData
 {
     public string? Name { get; set; }
     public string? Description { get; set; }
