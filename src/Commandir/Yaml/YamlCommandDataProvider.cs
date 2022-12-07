@@ -21,19 +21,23 @@ public sealed class YamlCommandDataProvider : ICommandDataProvider<YamlCommandDa
         foreach(YamlCommandData subCommand in _rootCommand.Commands)
         {
             StringBuilder pathBuilder = new StringBuilder();
-            AddCommand(subCommand, pathBuilder);
+            AddCommand(subCommand, _rootCommand, pathBuilder);
         }
     }
 
-    private void AddCommand(YamlCommandData command, StringBuilder pathBuilder)
+    private void AddCommand(YamlCommandData command, YamlCommandData parentCommand, StringBuilder pathBuilder)
     {
+        // Assign parent
+        command.Parent = parentCommand;
+
+        // Build path
         pathBuilder.Append($"/{command.Name}");
         string path = pathBuilder.ToString();
         _commandsByPath[path] = command;
 
         foreach(YamlCommandData subCommand in command.Commands)
         {
-            AddCommand(subCommand, pathBuilder);
+            AddCommand(subCommand, command, pathBuilder);
         }
     }
 

@@ -65,11 +65,11 @@ public class IntegrationTests
                        description: The greeting
                        required: false
                - name: hello
+                 parameters:
+                         command: echo Hello World > {tempFile}
                  commands:
                     - name: world
                       action: commandir.actions.run
-                      parameters:
-                         command: echo Hello World > {tempFile}
         ";
     }
 
