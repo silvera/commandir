@@ -84,7 +84,6 @@ public class IntegrationTests
                        description: The greeting
                        required: false
                - name: hello
-                 action: commandir.actions.run
                  commands:
                     - name: world
                       action: commandir.actions.run
