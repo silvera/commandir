@@ -24,26 +24,7 @@ public class IntegrationTests
 
         rootCommand.SetHandlers(async services =>
             {
-                var dynamicCommandProvider = services.GetRequiredService<IDynamicCommandDataProvider>();
-                var dynamicCommandData = dynamicCommandProvider.GetCommandData();
-                
-                var cancellationTokenProvider = services.GetRequiredService<ICancellationTokenProvider>();
-                var cancellationToken = cancellationTokenProvider.GetCancellationToken();
-
-                var commandDataProvider = services.GetRequiredService<ICommandDataProvider<YamlCommandData>>();
-                var commandData = commandDataProvider.GetCommandData(dynamicCommandData!.Path!);
-
-                var parameterProvider = services.GetRequiredService<IParameterProvider>();
-                parameterProvider.AddOrUpdateParameters(commandData!.Parameters!);
-                parameterProvider.AddOrUpdateParameters(dynamicCommandData!.Parameters!);
-
-                var actionProvider = services.GetRequiredService<IActionProvider>();
-                var actionType = commandData.Action!;
-                var action = actionProvider.GetAction(actionType);
-                if(action == null)
-                    throw new Exception($"Failed to find action: {actionType}");
-
-                await action.ExecuteAsync(services);
+                var result = await CommandExecutor.ExecuteAsync(services);
             }, exception => 
             {
                 Console.WriteLine($"Exception = {exception}");

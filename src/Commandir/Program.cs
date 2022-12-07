@@ -45,6 +45,17 @@ namespace Commandir
             try
             {
                 await BuildCommandLine()
+                // .AddMiddleware(async (context, next) =>
+                // {
+                //     if (context.ParseResult.Directives.Contains("just-say-hi"))
+                //     {
+                //         context.Console.WriteLine("Hi!");
+                //     }
+                //     else
+                //     {
+                //         await next(context);
+                //     }
+                // })
                 .UseHost(host => {
                     host.UseSerilog(logger);
                     host.ConfigureServices(services =>
@@ -70,28 +81,7 @@ namespace Commandir
 
             rootCommand.SetHandlers(async services =>
             {
-                var dynamicCommandProvider = services.GetRequiredService<IDynamicCommandDataProvider>();
-                var dynamicCommandData = dynamicCommandProvider.GetCommandData();
-                if(dynamicCommandData == null)
-                    throw new Exception("Failed to obtain dynamic command data");
-                    
-                var commandDataProvider = services.GetRequiredService<ICommandDataProvider<YamlCommandData>>();
-                var commandPath = dynamicCommandData.Path;
-                var commandData = commandDataProvider.GetCommandData(commandPath);
-                if(commandData == null)
-                    throw new Exception($"Failed to find command data data using path: {commandPath}");
-
-                var parameterProvider = services.GetRequiredService<IParameterProvider>();
-                parameterProvider.AddOrUpdateParameters(commandData.Parameters);
-                parameterProvider.AddOrUpdateParameters(dynamicCommandData.Parameters);
-
-                var actionProvider = services.GetRequiredService<IActionProvider>();
-                var actionType = commandData.Action!;
-                var action = actionProvider.GetAction(actionType);
-                if(action == null)
-                    throw new Exception($"Failed to find action: {actionType}");
-                
-                var result = await action.ExecuteAsync(services); 
+                var result = await CommandExecutor.ExecuteAsync(services); 
                 s_logger?.LogInformation("Result: {Result}", result);
 
             }, exception => 
