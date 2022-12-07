@@ -67,11 +67,9 @@ public class IntegrationTests
         Assert.Equal(expectedCommandResult, fileContents);
     }
 
-    [Fact]
-    public async Task ArgumentTest()
+    private string GetYaml(string tempFile)
     {
-        string tempFile = Path.GetTempFileName(); 
-        string yaml = $@"---
+        return $@"---
             commands:
                - name: greet
                  action: commandir.actions.run
@@ -85,42 +83,6 @@ public class IntegrationTests
                     -  name: greeting
                        description: The greeting
                        required: false
-        ";
-
-        await RunCommandAsync(tempFile, yaml, new [] {"greet", "World"}, "Hello World");
-        File.Delete(tempFile);
-    }
-
-    [Fact]
-    public async Task OptionTest()
-    {
-        string tempFile = Path.GetTempFileName(); 
-        string yaml = $@"---
-            commands:
-               - name: greet
-                 action: commandir.actions.run
-                 parameters:
-                    greeting: Hello
-                    command: echo {{{{greeting}}}} {{{{name}}}} > {tempFile}
-                 arguments:
-                    - name: name
-                      description: The user's name
-                 options:
-                    -  name: greeting
-                       description: The greeting
-                       required: false
-        ";
-
-        await RunCommandAsync(tempFile, yaml, new [] {"greet", "World", "--greeting", "Hey"}, "Hey World");
-        File.Delete(tempFile);
-    }
-
-    [Fact]
-    public async Task SubCommandTest()
-    {
-        string tempFile = Path.GetTempFileName(); 
-        string yaml = $@"---
-            commands:
                - name: hello
                  action: commandir.actions.run
                  commands:
@@ -129,7 +91,31 @@ public class IntegrationTests
                       parameters:
                          command: echo Hello World > {tempFile}
         ";
+    }
 
+    [Fact]
+    public async Task ArgumentTest()
+    {
+        string tempFile = Path.GetTempFileName(); 
+        string yaml = GetYaml(tempFile);
+        await RunCommandAsync(tempFile, yaml, new [] {"greet", "World"}, "Hello World");
+        File.Delete(tempFile);
+    }
+
+    [Fact]
+    public async Task OptionTest()
+    {
+        string tempFile = Path.GetTempFileName(); 
+        string yaml = GetYaml(tempFile);
+        await RunCommandAsync(tempFile, yaml, new [] {"greet", "World", "--greeting", "Hey"}, "Hey World");
+        File.Delete(tempFile);
+    }
+
+    [Fact]
+    public async Task SubCommandTest()
+    {
+        string tempFile = Path.GetTempFileName(); 
+        string yaml = GetYaml(tempFile);
         await RunCommandAsync(tempFile, yaml, new [] {"hello", "world"}, "Hello World");
         File.Delete(tempFile);
     }
