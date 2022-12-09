@@ -106,7 +106,7 @@ public sealed class CommandExecutor
         if(executor == null)
             throw new Exception($"Failed to create executor: {executorType}");
 
-        var executionContext = new ExecutionContext(_loggerFactory, cancellationToken, path, parameters);
+        var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, cancellationToken, path, parameters);
         return executor.ExecuteAsync(executionContext);
     }
 }
