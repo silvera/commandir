@@ -26,37 +26,18 @@ public class IntegrationTests
         var loggerFactory = new NullLoggerFactory();
         var commandExecutor = new CommandExecutor2(loggerFactory, commandDataProvider);
 
-        // rootCommand.SetHandlers(async services =>
-        //     {
-        //         var invocationContext = services.GetRequiredService<InvocationContext>();
-        //         var result = await commandExecutor.ExecuteAsync(invocationContext);
-        //     }, exception => 
-        //     {
-        //         Console.WriteLine($"Exception = {exception}");
-        //     });
-
-
         var parser = new CommandLineBuilder(rootCommand)
                 .AddMiddleware(async (context, next) =>
                 {
                     var command = context.ParseResult.CommandResult.Command; 
                     if (command.Subcommands.Count == 0)
                     {
-                        var result = await commandExecutor!.ExecuteAsync(context);
-                        //s_logger?.LogInformation("Result: {Result}", result);
+                        await commandExecutor!.ExecuteAsync(context);
                     }
                     else
                     {
                         await next(context);
                     }
-                })
-                .UseHost(host => 
-                {
-                    // host.ConfigureServices(services =>
-                    // {
-                    //     services.AddCommandirBaseServices();
-                    //     services.AddCommandirDataServices(commandDataProvider);
-                    // });
                 })
                 .Build();
 

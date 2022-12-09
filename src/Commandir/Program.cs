@@ -1,15 +1,10 @@
 ﻿using Commandir.Commands;
-using Commandir.Interfaces;
-using Commandir.Services;
 using Commandir.Yaml;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
-using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 
 namespace Commandir
@@ -66,16 +61,11 @@ namespace Commandir
                     }
                     catch(Exception e)
                     {
-                        s_logger.LogError(e, "");
+                        s_logger.LogCritical("{ExceptionType}: {Message}", e.GetType().Name,  e.Message);
                     }
                 })
                 .UseHost(host => {
                     host.UseSerilog(logger);
-                    host.ConfigureServices(services =>
-                    {
-                        services.AddCommandirBaseServices();
-                        services.AddCommandirDataServices(s_commandDataProvider);
-                    });
                 })
                 .UseDefaults()
                 .Build()
@@ -91,17 +81,6 @@ namespace Commandir
         {       
             var rootCommandData = s_commandDataProvider?.GetRootCommandData();
             var rootCommand = YamlCommandBuilder.Build(rootCommandData!);
-
-            rootCommand.SetHandlers(async services =>
-            {
-                // var invocationContext = services.GetRequiredService<InvocationContext>();
-                // var result = await s_commandExecutor!.ExecuteAsync(invocationContext);
-                // s_logger?.LogInformation("Result: {Result}", result);
-
-            }, exception => 
-            {
-                s_logger?.LogError(exception, "");
-            });
             return new CommandLineBuilder(rootCommand);
         }
     }
