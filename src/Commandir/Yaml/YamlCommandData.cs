@@ -6,7 +6,6 @@ public sealed class YamlCommandData : ICommandData
 {   
     public string? Name { get; set; }
     public string? Description { get; set; }
-    public string? Action { get; set; }
     public string? Executor { get; set; }
     public YamlCommandData? Parent { get; set; }
     public Dictionary<string, object?> Parameters { get; set; } = new Dictionary<string, object?>();
