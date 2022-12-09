@@ -46,7 +46,6 @@ public class IntegrationTests
         return $@"---
             commands:
                - name: greet
-                 action: commandir.actions.run
                  executor: commandir.executors.run
                  parameters:
                     greeting: Hello
@@ -63,7 +62,6 @@ public class IntegrationTests
                          command: echo Hello World > {tempFile}
                  commands:
                     - name: world
-                      action: commandir.actions.run
                       executor: commandir.executors.run
         ";
     }
