@@ -18,7 +18,7 @@ public class IntegrationTests
         var rootCommand = YamlCommandBuilder.Build(rootCommandData!);
 
         var loggerFactory = new NullLoggerFactory();
-        var commandExecutor = new CommandExecutor2(loggerFactory, commandDataProvider);
+        var commandExecutor = new CommandExecutor(loggerFactory, commandDataProvider);
 
         var parser = new CommandLineBuilder(rootCommand)
                 .AddMiddleware(async (context, next) =>

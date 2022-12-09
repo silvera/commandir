@@ -14,7 +14,7 @@ namespace Commandir
         private static Microsoft.Extensions.Logging.ILoggerFactory? s_loggerFactory;
         private static Microsoft.Extensions.Logging.ILogger? s_logger;
         private static YamlCommandDataProvider? s_commandDataProvider;
-        private static CommandExecutor2? s_commandExecutor;
+        private static CommandExecutor? s_commandExecutor;
 
         public static async Task Main(string[] args)
         {
@@ -39,7 +39,7 @@ namespace Commandir
             string yaml = File.ReadAllText(yamlFile);
             s_commandDataProvider = new YamlCommandDataProvider(yaml);
 
-            s_commandExecutor = new CommandExecutor2(s_loggerFactory, s_commandDataProvider);
+            s_commandExecutor = new CommandExecutor(s_loggerFactory, s_commandDataProvider);
 
             try
             {

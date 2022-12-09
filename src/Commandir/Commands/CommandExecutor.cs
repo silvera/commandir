@@ -1,20 +1,19 @@
 using Commandir.Interfaces;
 using Commandir.Yaml;
 using Microsoft.Extensions.Logging;
-using Stubble.Core.Builders;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 
 namespace Commandir.Commands;
 
-public sealed class CommandExecutor2
+public sealed class CommandExecutor
 {
     private readonly ILoggerFactory _loggerFactory;
     private readonly  ICommandDataProvider<YamlCommandData> _commandDataProvider;
 
     private readonly Dictionary<string, Type> _executorTypes;
 
-    public CommandExecutor2(ILoggerFactory loggerFactory, ICommandDataProvider<YamlCommandData> commandDataProvider)
+    public CommandExecutor(ILoggerFactory loggerFactory, ICommandDataProvider<YamlCommandData> commandDataProvider)
     {
         _loggerFactory = loggerFactory;
         _commandDataProvider = commandDataProvider;
@@ -109,40 +108,5 @@ public sealed class CommandExecutor2
 
         var executionContext = new ExecutionContext(_loggerFactory, cancellationToken, path, parameters);
         return executor.ExecuteAsync(executionContext);
-    }
-}
-
-public sealed class ParameterContext : IParameterContext
-{
-    private readonly Stubble.Core.StubbleVisitorRenderer _renderer = new StubbleBuilder().Build();
-
-    public Dictionary<string, object?> Parameters { get; }
-    public string Format(string template)
-    {
-        return _renderer.Render(template, Parameters);   
-    }
-
-    public ParameterContext(Dictionary<string, object?> parameters)
-    {
-        Parameters = parameters;
-    }
-}
-
-public sealed class ExecutionContext : IExecutionContext
-{
-    public ILoggerFactory LoggerFactory { get; }
-
-    public CancellationToken CancellationToken { get; }
-
-    public string Path { get; }
-
-    public IParameterContext ParameterContext { get; } 
-
-    public ExecutionContext(ILoggerFactory loggerFactory, CancellationToken cancellationToken, string path, Dictionary<string, object?> parameters)
-    {
-        LoggerFactory = loggerFactory;
-        CancellationToken = cancellationToken;
-        Path = path;
-        ParameterContext = new ParameterContext(parameters);
     }
 }
