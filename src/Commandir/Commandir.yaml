@@ -6,14 +6,16 @@ commands:
         - name: world
           description: Prints 'Hello World'
           action: commandir.actions.run
+          executor: commandir.executors.run
           parameters:
              command: echo "Hello World!"
    - name: greet
      description: Greets the user
      action: commandir.actions.run
+     executor: commandir.executors.run
      parameters:
         greeting: "Hello "
-        command: "echo {{greeting}} {{name}}"
+        command: "echo {{greeting}} {{name}}!"
      arguments:
         - name: name
           description: The user's name

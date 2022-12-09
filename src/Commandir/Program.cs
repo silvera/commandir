@@ -9,15 +9,17 @@ using Serilog;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
+using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
-
 
 namespace Commandir
 {
     public class Program
     { 
+        private static Microsoft.Extensions.Logging.ILoggerFactory? s_loggerFactory;
         private static Microsoft.Extensions.Logging.ILogger? s_logger;
         private static YamlCommandDataProvider? s_commandDataProvider;
+        private static CommandExecutor2? s_commandExecutor;
 
         public static async Task Main(string[] args)
         {
@@ -35,27 +37,38 @@ namespace Commandir
                 .WriteTo.Console(outputTemplate: "{SourceContext}: {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
 
-            ILoggerFactory loggerFactory = new LoggerFactory().AddSerilog(logger);
-            s_logger = loggerFactory.CreateLogger<Program>();
+            s_loggerFactory = new LoggerFactory().AddSerilog(logger);
+            s_logger = s_loggerFactory.CreateLogger<Program>();
 
             string yamlFile = Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml");
             string yaml = File.ReadAllText(yamlFile);
             s_commandDataProvider = new YamlCommandDataProvider(yaml);
 
+            s_commandExecutor = new CommandExecutor2(s_loggerFactory, s_commandDataProvider);
+
             try
             {
                 await BuildCommandLine()
-                // .AddMiddleware(async (context, next) =>
-                // {
-                //     if (context.ParseResult.Directives.Contains("just-say-hi"))
-                //     {
-                //         context.Console.WriteLine("Hi!");
-                //     }
-                //     else
-                //     {
-                //         await next(context);
-                //     }
-                // })
+                .AddMiddleware(async (context, next) =>
+                {
+                    try
+                    {
+                        var command = context.ParseResult.CommandResult.Command; 
+                        if (command.Subcommands.Count == 0)
+                        {
+                            var result = await s_commandExecutor!.ExecuteAsync(context);
+                            s_logger?.LogInformation("Result: {Result}", result);
+                        }
+                        else
+                        {
+                            await next(context);
+                        }
+                    }
+                    catch(Exception e)
+                    {
+                        s_logger.LogError(e, "");
+                    }
+                })
                 .UseHost(host => {
                     host.UseSerilog(logger);
                     host.ConfigureServices(services =>
@@ -81,8 +94,9 @@ namespace Commandir
 
             rootCommand.SetHandlers(async services =>
             {
-                var result = await CommandExecutor.ExecuteAsync(services); 
-                s_logger?.LogInformation("Result: {Result}", result);
+                // var invocationContext = services.GetRequiredService<InvocationContext>();
+                // var result = await s_commandExecutor!.ExecuteAsync(invocationContext);
+                // s_logger?.LogInformation("Result: {Result}", result);
 
             }, exception => 
             {

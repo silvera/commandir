@@ -7,7 +7,8 @@ public sealed class YamlCommandData : ICommandData
     public string? Name { get; set; }
     public string? Description { get; set; }
     public string? Action { get; set; }
-    public YamlCommandData? Parent { get; set;}
+    public string? Executor { get; set; }
+    public YamlCommandData? Parent { get; set; }
     public Dictionary<string, object?> Parameters { get; set; } = new Dictionary<string, object?>();
     public List<YamlArgumentData> Arguments { get; set; } = new List<YamlArgumentData>();
     public List<YamlOptionData> Options { get; set; } = new List<YamlOptionData>();

@@ -1,12 +1,13 @@
 using Commandir.Commands;
-using Commandir.Interfaces;
 using Commandir.Services;
 using Commandir.Yaml;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
+using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Threading.Tasks;
@@ -22,25 +23,42 @@ public class IntegrationTests
         var rootCommandData = commandDataProvider.GetRootCommandData();
         var rootCommand = YamlCommandBuilder.Build(rootCommandData!);
 
-        rootCommand.SetHandlers(async services =>
-            {
-                var result = await CommandExecutor.ExecuteAsync(services);
-            }, exception => 
-            {
-                Console.WriteLine($"Exception = {exception}");
-            });
+        var loggerFactory = new NullLoggerFactory();
+        var commandExecutor = new CommandExecutor2(loggerFactory, commandDataProvider);
+
+        // rootCommand.SetHandlers(async services =>
+        //     {
+        //         var invocationContext = services.GetRequiredService<InvocationContext>();
+        //         var result = await commandExecutor.ExecuteAsync(invocationContext);
+        //     }, exception => 
+        //     {
+        //         Console.WriteLine($"Exception = {exception}");
+        //     });
 
 
         var parser = new CommandLineBuilder(rootCommand)
-                        .UseHost(host => 
-                        {
-                            host.ConfigureServices(services =>
-                            {
-                                services.AddCommandirBaseServices();
-                                services.AddCommandirDataServices(commandDataProvider);
-                            });
-                        })
-                        .Build();
+                .AddMiddleware(async (context, next) =>
+                {
+                    var command = context.ParseResult.CommandResult.Command; 
+                    if (command.Subcommands.Count == 0)
+                    {
+                        var result = await commandExecutor!.ExecuteAsync(context);
+                        //s_logger?.LogInformation("Result: {Result}", result);
+                    }
+                    else
+                    {
+                        await next(context);
+                    }
+                })
+                .UseHost(host => 
+                {
+                    // host.ConfigureServices(services =>
+                    // {
+                    //     services.AddCommandirBaseServices();
+                    //     services.AddCommandirDataServices(commandDataProvider);
+                    // });
+                })
+                .Build();
 
         await parser.InvokeAsync(commandLineArgs);
 
@@ -54,6 +72,7 @@ public class IntegrationTests
             commands:
                - name: greet
                  action: commandir.actions.run
+                 executor: commandir.executors.run
                  parameters:
                     greeting: Hello
                     command: echo {{{{greeting}}}} {{{{name}}}} > {tempFile}
@@ -70,6 +89,7 @@ public class IntegrationTests
                  commands:
                     - name: world
                       action: commandir.actions.run
+                      executor: commandir.executors.run
         ";
     }
 
