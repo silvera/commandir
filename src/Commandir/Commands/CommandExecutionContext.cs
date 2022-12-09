@@ -7,20 +7,6 @@ using System.CommandLine.Invocation;
 
 namespace Commandir.Commands;
 
-// public sealed class StubbleParameterFormatter : IParameterFormatter
-// {
-//     private readonly Stubble.Core.StubbleVisitorRenderer _renderer;
-
-//     public StubbleParameterFormatter()
-//     {
-//         _renderer = new StubbleBuilder().Build();
-//     }
-//     public string Format(string template, Dictionary<string, object?> parameters)
-//     {
-//         return _renderer.Render(template, parameters);
-//     }
-// }
-
 public sealed class CommandExecutor2
 {
     private readonly ILoggerFactory _loggerFactory;
@@ -88,7 +74,7 @@ public sealed class CommandExecutor2
         if(commandData == null)
             throw new Exception($"Failed to find command data data using path: {path}");
 
-        Dictionary<string, object?> parameters = new Dictionary<string, object?>();
+        Dictionary<string, object?> parameters = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
         // Add static parameters from parent commands.
         foreach(var parentCommand in GetParentCommands(commandData))
@@ -148,10 +134,6 @@ public sealed class ExecutionContext : IExecutionContext
 
     public CancellationToken CancellationToken { get; }
 
-    // public Dictionary<string, object?> Parameters { get; }
-
-    // public IParameterFormatter ParameterFormatter { get; }
-
     public string Path { get; }
 
     public IParameterContext ParameterContext { get; } 
@@ -163,13 +145,4 @@ public sealed class ExecutionContext : IExecutionContext
         Path = path;
         ParameterContext = new ParameterContext(parameters);
     }
-
-    // public ExecutionContext(ILoggerFactory loggerFactory, IParameterFormatter parameterFormatter, CancellationToken cancellationToken, string path, Dictionary<string, object?> parameters)
-    // {
-    //     LoggerFactory = loggerFactory;
-    //     //ParameterFormatter = parameterFormatter;
-    //     CancellationToken = cancellationToken;
-    //     Path = path;
-    //     //Parameters = parameters;
-    // }
 }
