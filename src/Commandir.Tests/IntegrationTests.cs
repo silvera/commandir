@@ -161,40 +161,29 @@ public class IntegrationTests
                     - name: world1
                       executor: commandir.executors.run
                       parameters:
-                         command: echo Hello World1 > {file1}
+                         command: |
+                            sleep 10;
+                            echo Hello World1 > {file1}
                     - name: world2
                       executor: commandir.executors.run
                       parameters:
-                         command: echo Hello World2 > {file2}
+                         command: |
+                            sleep 10;
+                            echo Hello World2 > {file2}
 
         ";
     }
 
     [Theory]
-    [InlineData(false, "Hello World1", "Hello World2")]
-    [InlineData(true, "Hello World1", "Hello World2")]
-    public async Task ParallelParameterTest(bool parallel, string file1Output, string file2Output)
+    [InlineData(false, 15, "Hello World1", "")]
+    [InlineData(true, 15, "Hello World1", "Hello World2")]
+    public async Task ParallelTest(bool parallel, int delaySeconds, string file1Output, string file2Output)
     {
         string file1 = Path.GetTempFileName(); 
         string file2 = Path.GetTempFileName(); 
         string yaml = GetParallelTestsYaml(file1, file2, parallel: parallel);
-        await RunCommandAsync(yaml, new [] {"hello"});
-        AssertCommandOutput(file1, file1Output);
-        AssertCommandOutput(file2, file2Output);
-        File.Delete(file1);
-        File.Delete(file2);
-    }
-
-    [Theory]
-    [InlineData(false, "Hello World1", "Hello World2")]
-    [InlineData(true, "Hello World1", "Hello World2")]
-    public async Task ParallelOptionTest(bool parallel, string file1Output, string file2Output)
-    {
-        string file1 = Path.GetTempFileName(); 
-        string file2 = Path.GetTempFileName(); 
-        string yaml = GetParallelTestsYaml(file1, file2, parallel: true);
-        string parallelStr = $"{parallel}";
-        await RunCommandAsync(yaml, new [] {"hello", "--parallel", parallelStr});
+        var runTask = RunCommandAsync(yaml, new [] {"hello"});
+        await Task.WhenAny(runTask, Task.Delay(System.TimeSpan.FromSeconds(delaySeconds)));
         AssertCommandOutput(file1, file1Output);
         AssertCommandOutput(file2, file2Output);
         File.Delete(file1);

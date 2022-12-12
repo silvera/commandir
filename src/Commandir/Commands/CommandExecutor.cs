@@ -127,7 +127,7 @@ public sealed class CommandExecutor
         return parameters;
     }
 
-    public Task<object?> ExecuteAsync(InvocationContext context, YamlCommandData commandData, string commandPath)
+    private (IExecutor, IExecutionContext) GetExecutionInfo(InvocationContext context, YamlCommandData commandData, string commandPath)
     {
         // Resolve parameters.
         var parameters = ResolveParameters(context, commandData);
@@ -143,7 +143,7 @@ public sealed class CommandExecutor
             throw new Exception($"Failed to create executor: {executorType}");
 
         var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), commandPath, parameters);
-        return executor.ExecuteAsync(executionContext);
+        return (executor, executionContext);
     }
 
     public async Task<ICommandExecutionResult> ExecuteAsync(InvocationContext context)
@@ -161,7 +161,8 @@ public sealed class CommandExecutor
         if(commandData.Commands.Count == 0)
         {
             // This is a leaf command.
-            var result = await ExecuteAsync(context, commandData, commandPath); 
+            var (executor, executionContext) = GetExecutionInfo(context, commandData, commandPath);
+            var result = await executor.ExecuteAsync(executionContext);
             return new SingleCommmandExecutionResult(result);
         }
         else
@@ -186,6 +187,7 @@ public sealed class CommandExecutor
                 parallel = Convert.ToBoolean(parallelObj);
             }
 
+            var results = new List<object?>();
             List<Task<object?>> subCommandTasks = new List<Task<object?>>();
             foreach(var subCommandData in commandData.Commands)
             {
@@ -193,33 +195,31 @@ public sealed class CommandExecutor
                     .GetPath(subCommandData, 
                             data => data.Name!, 
                             data => data.Commands);
-                var subCommandTask = ExecuteAsync(context, subCommandData, subCommandPath);
-                subCommandTasks.Add(subCommandTask);
+                
+                var (executor, executionContext) = GetExecutionInfo(context, subCommandData, subCommandPath);
+                var subCommandTask = executor.ExecuteAsync(executionContext);
+                if(parallel)
+                {
+                    // Defer execution until later.
+                    subCommandTasks.Add(subCommandTask);
+                }
+                else
+                {
+                    // Execute each task inline.
+                    results.Add(await subCommandTask);
+                }
             }
-
+            
             if(parallel)
             {
                 await Task.WhenAll(subCommandTasks.ToArray());
-                var results = new List<object?>();
                 foreach(var subCommandTask in subCommandTasks)
                 {
-                    var result = await subCommandTask;
-                    results.Add(result);
+                    results.Add(await subCommandTask);
                 }
-
-                return new MultipleCommandExecutionResult(results);
             }
-            else
-            {
-                var results = new List<object?>();
-                foreach(var subCommandTask in subCommandTasks)
-                {
-                    var result = await subCommandTask;
-                    results.Add(result);
-                }
 
-                return new MultipleCommandExecutionResult(results);
-            }
+            return new MultipleCommandExecutionResult(results);
         }
     }
 }
