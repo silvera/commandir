@@ -48,15 +48,17 @@ namespace Commandir
                 {
                     try
                     {
-                        var command = context.ParseResult.CommandResult.Command; 
-                        if (command.Subcommands.Count == 0)
-                        {
-                            var result = await s_commandExecutor!.ExecuteAsync(context);
-                            s_logger?.LogInformation("Result: {Result}", result);
-                        }
-                        else
+                        var result = await s_commandExecutor!.ExecuteAsync(context);
+                        if(result is EmptyCommandExecutionResult)
                         {
                             await next(context);
+                        }
+                        if(result is MultipleCommandExecutionResult multiResult)
+                        {
+                            if(!result.HasResult)
+                            {
+                                 await next(context);
+                            }
                         }
                     }
                     catch(Exception e)

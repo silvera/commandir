@@ -6,6 +6,41 @@ using System.CommandLine.Invocation;
 
 namespace Commandir.Commands;
 
+public interface ICommandExecutionResult
+{
+    bool HasResult { get; }
+}
+
+public sealed class EmptyCommandExecutionResult : ICommandExecutionResult
+{
+    public bool HasResult => false;
+}
+
+public sealed class SingleCommmandExecutionResult : ICommandExecutionResult
+{
+    public object? Value { get; }
+
+    public SingleCommmandExecutionResult(object? value )
+    {
+        Value = value;
+    }
+
+    public bool HasResult => Value is not null;
+}
+
+public sealed class MultipleCommandExecutionResult : ICommandExecutionResult
+{
+    public List<object?>? Values { get; }
+
+    public MultipleCommandExecutionResult(List<object?> values)
+    {
+        Values = values;
+    }
+
+    public bool HasResult => Values is not null;
+}
+
+
 public sealed class CommandExecutor
 {
     private readonly ILoggerFactory _loggerFactory;
@@ -63,16 +98,8 @@ public sealed class CommandExecutor
             dst[name] = value;
     }
 
-    public Task<object?> ExecuteAsync(InvocationContext context)
+    private static Dictionary<string, object?> ResolveParameters(InvocationContext context, YamlCommandData commandData)
     {
-        var parseResult = context.ParseResult;
-
-        var path = parseResult.CommandResult.Command.GetPath().Replace("/Commandir", string.Empty);
-        
-        var commandData = _commandDataProvider.GetCommandData(path);
-        if(commandData == null)
-            throw new Exception($"Failed to find command data data using path: {path}");
-
         Dictionary<string, object?> parameters = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
         // Add static parameters from parent commands.
@@ -85,19 +112,28 @@ public sealed class CommandExecutor
         AddOrUpdateParameters(parameters, commandData.Parameters);
 
         // Add dynamic parameters from this command invocation.
-        var command = parseResult.CommandResult.Command;
+        var command = context.ParseResult.CommandResult.Command;
         foreach(Argument argument in command.Arguments)
         {
-            object? value = parseResult.GetValueForArgument(argument);
+            object? value = context.ParseResult.GetValueForArgument(argument);
             AddOrUpdateParameter(parameters, argument.Name, value);
         }
         foreach(Option option in command.Options)
         {
-            object? value = parseResult.GetValueForOption(option);
+            object? value = context.ParseResult.GetValueForOption(option);
             AddOrUpdateParameter(parameters, option.Name, value);
         }
 
-        var cancellationToken = context.GetCancellationToken();
+        return parameters;
+    }
+
+    public Task<object?> ExecuteAsync(InvocationContext context, YamlCommandData commandData, string commandPath)
+    {
+        // Resolve parameters.
+        var parameters = ResolveParameters(context, commandData);
+
+        if(commandData.Executor is null)
+            throw new Exception($"Executor is null");
 
         if(!_executorTypes.TryGetValue(commandData.Executor!, out Type? executorType))
             throw new Exception($"Failed to find executor: {commandData.Executor!}");
@@ -106,7 +142,84 @@ public sealed class CommandExecutor
         if(executor == null)
             throw new Exception($"Failed to create executor: {executorType}");
 
-        var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, cancellationToken, path, parameters);
+        var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), commandPath, parameters);
         return executor.ExecuteAsync(executionContext);
+    }
+
+    public async Task<ICommandExecutionResult> ExecuteAsync(InvocationContext context)
+    {
+        var commandPath = PathProvider
+            .GetPath(context.ParseResult.CommandResult.Command, 
+                    data => data.Name, 
+                    data => data.Parents.Where(parent => parent is Command).Cast<Command>())
+            .Replace("/Commandir", string.Empty);
+
+        var commandData = _commandDataProvider.GetCommandData(commandPath);
+        if(commandData == null)
+            throw new Exception($"Failed to find command data data using path: {commandPath}");
+
+        if(commandData.Commands.Count == 0)
+        {
+            // This is a leaf command.
+            var result = await ExecuteAsync(context, commandData, commandPath); 
+            return new SingleCommmandExecutionResult(result);
+        }
+        else
+        {
+            // This is a non-leaf (internal) command.
+            
+            // Resolve parameters as if we were executing the command directly.
+            var parameters = ResolveParameters(context, commandData);
+
+            // We require a 'recurse' parameter entry to decide if we should execute child commands (recursively). 
+            if(!parameters.TryGetValue("recurse", out object? recurseObj))
+                return new EmptyCommandExecutionResult();
+
+            bool recurse = Convert.ToBoolean(recurseObj);
+            if(!recurse)
+                return new EmptyCommandExecutionResult();
+
+            // Decide if child commands should be executed serially (the default) or in parallel.
+            bool parallel = false;
+            if(parameters.TryGetValue("parallel", out object? parallelObj))
+            {
+                parallel = Convert.ToBoolean(parallelObj);
+            }
+
+            List<Task<object?>> subCommandTasks = new List<Task<object?>>();
+            foreach(var subCommandData in commandData.Commands)
+            {
+                string subCommandPath = PathProvider
+                    .GetPath(subCommandData, 
+                            data => data.Name!, 
+                            data => data.Commands);
+                var subCommandTask = ExecuteAsync(context, subCommandData, subCommandPath);
+                subCommandTasks.Add(subCommandTask);
+            }
+
+            if(parallel)
+            {
+                await Task.WhenAll(subCommandTasks.ToArray());
+                var results = new List<object?>();
+                foreach(var subCommandTask in subCommandTasks)
+                {
+                    var result = await subCommandTask;
+                    results.Add(result);
+                }
+
+                return new MultipleCommandExecutionResult(results);
+            }
+            else
+            {
+                var results = new List<object?>();
+                foreach(var subCommandTask in subCommandTasks)
+                {
+                    var result = await subCommandTask;
+                    results.Add(result);
+                }
+
+                return new MultipleCommandExecutionResult(results);
+            }
+        }
     }
 }

@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Logging;
-
 namespace Commandir.Interfaces;
 
 public interface IExecutor
