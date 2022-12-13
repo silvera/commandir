@@ -53,13 +53,6 @@ namespace Commandir
                         {
                             await next(context);
                         }
-                        if(result is MultipleCommandExecutionResult multiResult)
-                        {
-                            if(!result.HasResult)
-                            {
-                                 await next(context);
-                            }
-                        }
                     }
                     catch(Exception e)
                     {

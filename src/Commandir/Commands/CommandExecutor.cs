@@ -127,7 +127,7 @@ public sealed class CommandExecutor
         return parameters;
     }
 
-    private (IExecutor, IExecutionContext) GetExecutionInfo(InvocationContext context, YamlCommandData commandData, string commandPath)
+    private (IExecutor, IExecutionContext) GetExecutionInfo(InvocationContext context, YamlCommandData commandData)
     {
         // Resolve parameters.
         var parameters = ResolveParameters(context, commandData);
@@ -142,18 +142,16 @@ public sealed class CommandExecutor
         if(executor == null)
             throw new Exception($"Failed to create executor: {executorType}");
 
-        var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), commandPath, parameters);
+        var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), commandData.Path, parameters);
         return (executor, executionContext);
-    }
+    }   
 
     public async Task<ICommandExecutionResult> ExecuteAsync(InvocationContext context)
     {
-        var commandPath = PathProvider
-            .GetPath(context.ParseResult.CommandResult.Command, 
-                    data => data.Name, 
-                    data => data.Parents.Where(parent => parent is Command).Cast<Command>())
+        string commandPath = context.ParseResult.CommandResult.Command
+            .GetPath()
             .Replace("/Commandir", string.Empty);
-
+                            
         var commandData = _commandDataProvider.GetCommandData(commandPath);
         if(commandData == null)
             throw new Exception($"Failed to find command data data using path: {commandPath}");
@@ -161,7 +159,7 @@ public sealed class CommandExecutor
         if(commandData.Commands.Count == 0)
         {
             // This is a leaf command.
-            var (executor, executionContext) = GetExecutionInfo(context, commandData, commandPath);
+            var (executor, executionContext) = GetExecutionInfo(context, commandData);
             var result = await executor.ExecuteAsync(executionContext);
             return new SingleCommmandExecutionResult(result);
         }
@@ -190,13 +188,9 @@ public sealed class CommandExecutor
             var results = new List<object?>();
             List<Task<object?>> subCommandTasks = new List<Task<object?>>();
             foreach(var subCommandData in commandData.Commands)
-            {
-                string subCommandPath = PathProvider
-                    .GetPath(subCommandData, 
-                            data => data.Name!, 
-                            data => data.Commands);
-                
-                var (executor, executionContext) = GetExecutionInfo(context, subCommandData, subCommandPath);
+            {    
+                var (executor, executionContext) = GetExecutionInfo(context, subCommandData);
+
                 var subCommandTask = executor.ExecuteAsync(executionContext);
                 if(parallel)
                 {

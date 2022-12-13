@@ -1,5 +1,4 @@
 using Commandir.Interfaces;
-using System.Text;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -18,26 +17,46 @@ public sealed class YamlCommandDataProvider : ICommandDataProvider<YamlCommandDa
             .Build();
 
         _rootCommand = deserializer.Deserialize<YamlCommandData>(yaml);
-        foreach(YamlCommandData subCommand in _rootCommand.Commands)
+        AssignParents(_rootCommand);
+        AssignPaths(_rootCommand);
+    }
+
+    private void AssignParents(YamlCommandData command, YamlCommandData? parentCommand = null)
+    {
+        command.Parent = parentCommand;
+        foreach(var subCommand in command.Commands)
         {
-            StringBuilder pathBuilder = new StringBuilder();
-            AddCommand(subCommand, _rootCommand, pathBuilder);
+            AssignParents(subCommand, command);
         }
     }
 
-    private void AddCommand(YamlCommandData command, YamlCommandData parentCommand, StringBuilder pathBuilder)
+    private void AssignPaths(YamlCommandData command)
     {
-        // Assign parent
-        command.Parent = parentCommand;
-
-        // Build path
-        pathBuilder.Append($"/{command.Name}");
-        string path = pathBuilder.ToString();
-        _commandsByPath[path] = command;
-
-        foreach(YamlCommandData subCommand in command.Commands)
+        string commandPath = GetPath(command);
+        command.Path = commandPath;
+        _commandsByPath[commandPath] = command;
+        foreach(var subCommand in command.Commands)
         {
-            AddCommand(subCommand, command, pathBuilder);
+            AssignPaths(subCommand);
+        }
+    }
+
+    private static string GetPath(YamlCommandData command)
+    {
+        List<string> components = new List<string>();
+        GetPathComponents(command, components);
+        components.Reverse();
+        return string.Concat(components);
+    }
+
+    private static void GetPathComponents(YamlCommandData command, List<string> names)
+    {
+        if(command.Name != null)
+            names.Add($"/{command.Name}");
+        
+        if(command.Parent != null)
+        {
+            GetPathComponents(command.Parent!, names);
         }
     }
 
