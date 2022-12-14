@@ -45,7 +45,7 @@ public class ExecutableTests : TestsBase
         string tempFile = Path.GetTempFileName(); 
         string yaml = GetExecutableTestsYaml(tempFile, executable: true);
         string executableStr = $"{executable}";
-        var result = await RunCommandAsync(yaml, new [] {"hello", "--executable", executableStr});
+        await RunCommandAsync(yaml, new [] {"hello", "--executable", executableStr});
         AssertCommandOutput(tempFile, expectedCommandOutput);
         File.Delete(tempFile);
     }

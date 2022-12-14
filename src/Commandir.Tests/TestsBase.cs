@@ -30,8 +30,8 @@ public abstract class TestsBase
         var parser = new CommandLineBuilder(rootCommand)
                 .AddMiddleware(async (context, next) =>
                 {
-                    result = await commandExecutor!.ExecuteAsync(context);
-                    if(result is EmptyCommandExecutionResult)
+                    var result = await commandExecutor!.ExecuteAsync(context);
+                    if(result is FailedCommandExecution failure)
                     {
                         await next(context);
                     }

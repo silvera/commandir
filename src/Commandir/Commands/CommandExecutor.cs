@@ -6,40 +6,30 @@ using System.CommandLine.Invocation;
 
 namespace Commandir.Commands;
 
+// Marker interface for command execution result types.
 public interface ICommandExecutionResult
 {
-    bool HasResult { get; }
 }
 
-public sealed class EmptyCommandExecutionResult : ICommandExecutionResult
-{
-    public bool HasResult => false;
-}
-
-public sealed class SingleCommmandExecutionResult : ICommandExecutionResult
-{
-    public object? Value { get; }
-
-    public SingleCommmandExecutionResult(object? value )
+// Represents a failed command execution.
+public sealed class FailedCommandExecution : ICommandExecutionResult
+{   
+    public string Error { get; }
+    public FailedCommandExecution(string error)
     {
-        Value = value;
+        Error = error;
     }
-
-    public bool HasResult => Value is not null;
 }
 
-public sealed class MultipleCommandExecutionResult : ICommandExecutionResult
+// Represents a successful command execution.
+public sealed class SuccessfulCommandExecution : ICommandExecutionResult
 {
-    public List<object?>? Values { get; }
-
-    public MultipleCommandExecutionResult(List<object?> values)
+    public IEnumerable<object?> Results { get; }
+    public SuccessfulCommandExecution(IEnumerable<object?> results)
     {
-        Values = values;
+        Results = results;
     }
-
-    public bool HasResult => Values is not null;
 }
-
 
 public sealed class CommandExecutor
 {
@@ -142,7 +132,7 @@ public sealed class CommandExecutor
         if(executor == null)
             throw new Exception($"Failed to create executor: {executorType}");
 
-        var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), commandData.Path, parameters);
+        var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), commandData.Path!, parameters);
         return (executor, executionContext);
     }   
 
@@ -161,7 +151,7 @@ public sealed class CommandExecutor
             // This is a leaf command.
             var (executor, executionContext) = GetExecutionInfo(context, commandData);
             var result = await executor.ExecuteAsync(executionContext);
-            return new SingleCommmandExecutionResult(result);
+            return new SuccessfulCommandExecution(new [] {result});
         }
         else
         {
@@ -172,11 +162,11 @@ public sealed class CommandExecutor
 
             // Requires an 'executable' parameter to determine if child commands should be executed (recursively). 
             if(!parameters.TryGetValue("executable", out object? executableObj))
-                return new EmptyCommandExecutionResult();
+                return new FailedCommandExecution("Failed to find `executable` parameter.");
 
             bool executable = Convert.ToBoolean(executableObj);
             if(!executable)
-                return new EmptyCommandExecutionResult();
+                return new FailedCommandExecution("Failed to convert `executable` parameter to a boolean value");
 
             // Decide if child commands should be executed serially (the default) or in parallel.
             bool parallel = false;
@@ -213,7 +203,7 @@ public sealed class CommandExecutor
                 }
             }
 
-            return new MultipleCommandExecutionResult(results);
+            return new SuccessfulCommandExecution(results);
         }
     }
 }

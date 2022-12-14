@@ -36,8 +36,7 @@ public class CommandTests : TestsBase
     {
         string tempFile = Path.GetTempFileName(); 
         string yaml = GetYaml(tempFile);
-        var result = await RunCommandAsync(yaml, new [] {"greet", "World"});
-        Assert.True(result.HasResult);
+        await RunCommandAsync(yaml, new [] {"greet", "World"});
         AssertCommandOutput(tempFile, "Hello World");
         File.Delete(tempFile);
     }
@@ -47,8 +46,7 @@ public class CommandTests : TestsBase
     {
         string tempFile = Path.GetTempFileName(); 
         string yaml = GetYaml(tempFile);
-        var result = await RunCommandAsync(yaml, new [] {"greet", "World", "--greeting", "Hey"});
-        Assert.True(result.HasResult);
+        await RunCommandAsync(yaml, new [] {"greet", "World", "--greeting", "Hey"});
         AssertCommandOutput(tempFile, "Hey World");
         File.Delete(tempFile);
     }
@@ -58,8 +56,7 @@ public class CommandTests : TestsBase
     {
         string tempFile = Path.GetTempFileName(); 
         string yaml = GetYaml(tempFile);
-        var result = await RunCommandAsync(yaml, new [] {"hello", "world"});
-        Assert.True(result.HasResult);
+        await RunCommandAsync(yaml, new [] {"hello", "world"});
         AssertCommandOutput(tempFile, "Hello World");
         File.Delete(tempFile);
     }
