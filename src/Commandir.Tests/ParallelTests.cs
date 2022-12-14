@@ -12,7 +12,7 @@ public class ParallelTests : TestsBase
             commands:
                - name: hello
                  parameters:
-                    recurse: true
+                    executable: true
                     parallel: {parallel}
                  options:
                     - name: parallel

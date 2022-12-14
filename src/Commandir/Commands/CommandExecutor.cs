@@ -170,12 +170,12 @@ public sealed class CommandExecutor
             // Resolve parameters as if we were executing the command directly.
             var parameters = ResolveParameters(context, commandData);
 
-            // We require a 'recurse' parameter entry to decide if we should execute child commands (recursively). 
-            if(!parameters.TryGetValue("recurse", out object? recurseObj))
+            // Requires an 'executable' parameter to determine if child commands should be executed (recursively). 
+            if(!parameters.TryGetValue("executable", out object? executableObj))
                 return new EmptyCommandExecutionResult();
 
-            bool recurse = Convert.ToBoolean(recurseObj);
-            if(!recurse)
+            bool executable = Convert.ToBoolean(executableObj);
+            if(!executable)
                 return new EmptyCommandExecutionResult();
 
             // Decide if child commands should be executed serially (the default) or in parallel.
