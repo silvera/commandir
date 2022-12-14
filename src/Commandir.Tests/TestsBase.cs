@@ -26,19 +26,21 @@ public abstract class TestsBase
         var loggerFactory = new NullLoggerFactory();
         var commandExecutor = new CommandExecutor(loggerFactory, commandDataProvider);
 
-        ICommandExecutionResult result = null;
+        ICommandExecutionResult? result = null;
         var parser = new CommandLineBuilder(rootCommand)
                 .AddMiddleware(async (context, next) =>
                 {
-                    var result = await commandExecutor!.ExecuteAsync(context);
+                    result = await commandExecutor!.ExecuteAsync(context);
+                    //System.Console.WriteLine($"Result={result}");
                     if(result is FailedCommandExecution failure)
                     {
+                        System.Console.WriteLine($"Error={failure.Error}");
                         await next(context);
                     }
                 })
                 .Build();
 
         await parser.InvokeAsync(commandLineArgs);
-        return result;
+        return result!;
     }
 }

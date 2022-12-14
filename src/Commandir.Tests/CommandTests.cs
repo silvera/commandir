@@ -22,7 +22,7 @@ public class CommandTests : TestsBase
                     -  name: greeting
                        description: The greeting
                        required: false
-               - name: hello
+               - name: command
                  parameters:
                          command: echo Hello World > {tempFile}
                  commands:
@@ -56,7 +56,7 @@ public class CommandTests : TestsBase
     {
         string tempFile = Path.GetTempFileName(); 
         string yaml = GetYaml(tempFile);
-        await RunCommandAsync(yaml, new [] {"hello", "world"});
+        await RunCommandAsync(yaml, new [] {"command", "world"});
         AssertCommandOutput(tempFile, "Hello World");
         File.Delete(tempFile);
     }

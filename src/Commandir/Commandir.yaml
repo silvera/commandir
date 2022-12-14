@@ -2,6 +2,8 @@
 description: Sample Commands
 commands:
    - name: hello
+     parameters:
+        executable: true
      commands:
         - name: world
           description: Prints 'Hello World'

@@ -10,7 +10,7 @@ public class ParallelTests : TestsBase
     {
         return $@"---
             commands:
-               - name: hello
+               - name: parallel
                  parameters:
                     executable: true
                     parallel: {parallel}
@@ -42,7 +42,7 @@ public class ParallelTests : TestsBase
         string file1 = Path.GetTempFileName(); 
         string file2 = Path.GetTempFileName(); 
         string yaml = GetParallelTestsYaml(file1, file2, parallel: parallel);
-        var runTask = RunCommandAsync(yaml, new [] {"hello"});
+        var runTask = RunCommandAsync(yaml, new [] {"parallel"});
         await Task.WhenAny(runTask, Task.Delay(System.TimeSpan.FromSeconds(delaySeconds)));
         AssertCommandOutput(file1, file1Output);
         AssertCommandOutput(file2, file2Output);

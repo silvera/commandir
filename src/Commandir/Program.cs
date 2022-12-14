@@ -4,7 +4,9 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using System.CommandLine;
 using System.CommandLine.Builder;
+using System.CommandLine.Help;
 using System.CommandLine.Hosting;
+using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 
 namespace Commandir
@@ -73,7 +75,16 @@ namespace Commandir
         }
 
         private static CommandLineBuilder BuildCommandLine()
-        {       
+        {      
+            // var rootCommand = new RootCommand();
+            // var command = new Command("hello", "Prints Hello World");
+            // Handler.SetHandler(command, context => Console.WriteLine("Hello World"));
+            // var argument = new Argument<string>("message", "The message.");
+            // command.Add(argument);
+            
+            // rootCommand.Add(command);
+            // return new CommandLineBuilder(rootCommand);
+            
             var rootCommandData = s_commandDataProvider?.GetRootCommandData();
             var rootCommand = YamlCommandBuilder.Build(rootCommandData!);
             return new CommandLineBuilder(rootCommand);

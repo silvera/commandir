@@ -136,6 +136,28 @@ public sealed class CommandExecutor
         return (executor, executionContext);
     }   
 
+    private static ICommandExecutionResult? TryValidateParseResult(InvocationContext context)
+    {
+        // Check for unexpected parse errors
+        if(context.ParseResult.Errors.Count > 0)
+        {
+            if(context.ParseResult.Errors.Count > 1)
+            {
+                // There is more than one parse error; return the last failure.
+                return new FailedCommandExecution(context.ParseResult.Errors.Last().Message);
+            }
+            else
+            {
+                // Ensure the one parse error is expected.
+                var error = context.ParseResult.Errors.First();
+                if(error.Message != "Required command was not provided.")
+                    return new FailedCommandExecution(error.Message);
+            }
+        }
+
+        return null;
+    }
+
     public async Task<ICommandExecutionResult> ExecuteAsync(InvocationContext context)
     {
         string commandPath = context.ParseResult.CommandResult.Command
@@ -145,6 +167,13 @@ public sealed class CommandExecutor
         var commandData = _commandDataProvider.GetCommandData(commandPath);
         if(commandData == null)
             throw new Exception($"Failed to find command data data using path: {commandPath}");
+
+        // Manually surface any parse results that should prevent command execution.
+        // This is required because we're using Middlware to bypass the standard command execution pipeline.
+        // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
+        var validationResult = TryValidateParseResult(context);
+        if(validationResult != null)
+            return validationResult;
 
         if(commandData.Commands.Count == 0)
         {

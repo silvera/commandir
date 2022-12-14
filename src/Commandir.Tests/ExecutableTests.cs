@@ -10,7 +10,7 @@ public class ExecutableTests : TestsBase
     {
         return $@"---
             commands:
-               - name: hello
+               - name: executable
                  parameters:
                     executable: {executable}
                  options:
@@ -32,7 +32,7 @@ public class ExecutableTests : TestsBase
     {
         string tempFile = Path.GetTempFileName(); 
         string yaml = GetExecutableTestsYaml(tempFile, executable: executable);
-        await RunCommandAsync(yaml, new [] {"hello"});
+        await RunCommandAsync(yaml, new [] {"executable"});
         AssertCommandOutput(tempFile, expectedCommandOutput);
         File.Delete(tempFile);
     }
@@ -45,7 +45,7 @@ public class ExecutableTests : TestsBase
         string tempFile = Path.GetTempFileName(); 
         string yaml = GetExecutableTestsYaml(tempFile, executable: true);
         string executableStr = $"{executable}";
-        await RunCommandAsync(yaml, new [] {"hello", "--executable", executableStr});
+        await RunCommandAsync(yaml, new [] {"executable", "--executable", executableStr});
         AssertCommandOutput(tempFile, expectedCommandOutput);
         File.Delete(tempFile);
     }
