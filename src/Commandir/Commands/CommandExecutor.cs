@@ -160,13 +160,18 @@ public sealed class CommandExecutor
             // Resolve parameters as if we were executing the command directly.
             var parameters = ResolveParameters(context, commandData);
 
-            // Requires an 'executable' parameter to determine if child commands should be executed (recursively). 
-            if(!parameters.TryGetValue("executable", out object? executableObj))
-                return new FailedCommandExecution("Failed to find `executable` parameter.");
+            // Internal (child) commands are not executable by default.
+            bool executable = false;
 
-            bool executable = Convert.ToBoolean(executableObj);
+            if(parameters.TryGetValue("executable", out object? executableObj))
+            {
+                executable = Convert.ToBoolean(executableObj);
+            }
+
             if(!executable)
-                return new FailedCommandExecution("Failed to convert `executable` parameter to a boolean value");
+            {
+                return new FailedCommandExecution($"Command `{commandData.Path}` is not marked as executable");
+            }
 
             // Decide if child commands should be executed serially (the default) or in parallel.
             bool parallel = false;

@@ -51,7 +51,6 @@ namespace Commandir
                         var result = await s_commandExecutor!.ExecuteAsync(context);
                         if(result is FailedCommandExecution failure)
                         {
-                            s_logger.LogCritical("{Error}", failure.Error);
                             await next(context);
                         }
                     }
