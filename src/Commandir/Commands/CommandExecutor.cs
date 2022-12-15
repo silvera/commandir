@@ -59,62 +59,6 @@ public sealed class CommandExecutor
         return types;
     }
 
-    // private static List<YamlCommandData> GetParentCommands(YamlCommandData commandData)
-    // {
-    //     var components = new List<YamlCommandData>();
-    //     var current = commandData.Parent;
-    //     while(current != null)
-    //     {
-    //         components.Add(current);
-    //         current = current.Parent;
-    //     }
-
-    //     components.Reverse();
-    //     return components;
-    // }
-
-    // private static void AddOrUpdateParameters(Dictionary<string, object?> dst, Dictionary<string, object?> src)
-    // {
-    //     foreach(var pair in src)
-    //     {
-    //         AddOrUpdateParameter(dst, pair.Key, pair.Value);
-    //     }
-    // }
-
-    // private static void AddOrUpdateParameter(Dictionary<string, object?> dst, string name, object? value)
-    // {
-    //     if(value != null)
-    //         dst[name] = value;
-    // }
-
-    // private ParameterContext GetParameterContext(InvocationContext invocationContext, YamlCommandData commandData)
-    // {
-    //     Dictionary<string, object?> parameters = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-
-    //     // Add static parameters from parent commands.
-    //     foreach(var parentCommand in GetParentCommands(commandData))
-    //     {
-    //         AddOrUpdateParameters(parameters, parentCommand.Parameters);
-    //     }
-
-    //     // Add static parameters from this command.
-    //     AddOrUpdateParameters(parameters, commandData.Parameters);
-
-    //     // Add dynamic parameters from this command invocation.
-    //     var command = invocationContext.ParseResult.CommandResult.Command;
-    //     foreach(Argument argument in command.Arguments)
-    //     {
-    //         object? value = invocationContext.ParseResult.GetValueForArgument(argument);
-    //         AddOrUpdateParameter(parameters, argument.Name, value);
-    //     }
-    //     foreach(Option option in command.Options)
-    //     {
-    //         object? value = invocationContext.ParseResult.GetValueForOption(option);
-    //         AddOrUpdateParameter(parameters, option.Name, value);
-    //     }
-
-    //     return new ParameterContext(parameters);
-    // }
     private sealed class Executable
     {
         private readonly IExecutor _executor;
