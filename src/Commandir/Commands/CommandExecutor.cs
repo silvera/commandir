@@ -3,6 +3,7 @@ using Commandir.Yaml;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Linq;
 
 namespace Commandir.Commands;
 
@@ -234,29 +235,24 @@ public sealed class CommandExecutor
         }
 
         var results = new List<object?>();
-        List<Task<object?>> subCommandTasks = new List<Task<object?>>();
-        foreach(var executable in executables)
-        {    
-            Console.WriteLine($"Executable: {executable.Path}");
-            var subCommandTask = executable.ExecuteAsync();
-            if(parallel)
-            {
-                // Defer execution until later.
-                subCommandTasks.Add(subCommandTask);
-            }
-            else
-            {
-                // Execute each task inline.
-                results.Add(await subCommandTask);
-            }
-        }
-        
+
         if(parallel)
         {
-            await Task.WhenAll(subCommandTasks.ToArray());
-            foreach(var subCommandTask in subCommandTasks)
+            var executableTasks = executables
+                .Select(e => e.ExecuteAsync())
+                .ToArray();
+            
+            await Task.WhenAll(executableTasks);
+            foreach(var executableTask in executableTasks)
             {
-                results.Add(await subCommandTask);
+                results.Add(await executableTask);
+            }
+        }
+        else
+        {
+            foreach(var executable in executables)
+            {
+                results.Add(await executable.ExecuteAsync());
             }
         }
 

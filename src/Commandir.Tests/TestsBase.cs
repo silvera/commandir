@@ -52,10 +52,8 @@ public abstract class TestsBase
                 .AddMiddleware(async (context, next) =>
                 {
                     result = await commandExecutor!.ExecuteAsync(context);
-                    //System.Console.WriteLine($"Result={result}");
                     if(result is FailedCommandExecution failure)
                     {
-                        System.Console.WriteLine($"Error={failure.Error}");
                         await next(context);
                     }
                 })
