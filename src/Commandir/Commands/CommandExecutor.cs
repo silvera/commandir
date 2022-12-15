@@ -117,7 +117,23 @@ public sealed class CommandExecutor
         return parameters;
     }
 
-    private (IExecutor, IExecutionContext) GetExecutionInfo(InvocationContext context, YamlCommandData commandData)
+    private sealed class Executable
+    {
+        private readonly IExecutor _executor;
+        private readonly IExecutionContext _executionContext;
+        public Executable(IExecutor executor, IExecutionContext executionContext)
+        {
+            _executor = executor;
+            _executionContext = executionContext;
+        }
+
+        public Task<object?> ExecuteAsync()
+        {
+            return _executor.ExecuteAsync(_executionContext);
+        }
+    }
+
+    private Executable GetExecutable(InvocationContext context, YamlCommandData commandData)
     {
         // Resolve parameters.
         var parameters = ResolveParameters(context, commandData);
@@ -133,23 +149,23 @@ public sealed class CommandExecutor
             throw new Exception($"Failed to create executor: {executorType}");
 
         var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), commandData.Path!, parameters);
-        return (executor, executionContext);
+        return new Executable(executor, executionContext);
     }   
 
-    private static ICommandExecutionResult? TryValidateParseResult(InvocationContext context)
+    private static ICommandExecutionResult? ValidateParseResult(InvocationContext invocationContext)
     {
         // Check for unexpected parse errors
-        if(context.ParseResult.Errors.Count > 0)
+        if(invocationContext.ParseResult.Errors.Count > 0)
         {
-            if(context.ParseResult.Errors.Count > 1)
+            if(invocationContext.ParseResult.Errors.Count > 1)
             {
                 // There is more than one parse error; return the last failure.
-                return new FailedCommandExecution(context.ParseResult.Errors.Last().Message);
+                return new FailedCommandExecution(invocationContext.ParseResult.Errors.Last().Message);
             }
             else
             {
                 // Ensure the one parse error is expected.
-                var error = context.ParseResult.Errors.First();
+                var error = invocationContext.ParseResult.Errors.First();
                 if(error.Message != "Required command was not provided.")
                     return new FailedCommandExecution(error.Message);
             }
@@ -158,9 +174,36 @@ public sealed class CommandExecutor
         return null;
     }
 
-    public async Task<ICommandExecutionResult> ExecuteAsync(InvocationContext context)
+    private void GetExecutables(InvocationContext invocationContext, YamlCommandData commandData, List<Executable> executables)
+    {   
+        bool isLeafCommand = commandData.Commands.Count == 0;
+
+        var parameters = ResolveParameters(invocationContext, commandData);
+
+        // Internal commands are not executable by default but leaf commands are.
+        bool isExecutable = isLeafCommand;
+        if(parameters.TryGetValue("executable", out object? executableObj))
+        {
+            isExecutable = Convert.ToBoolean(executableObj);
+        }
+
+        if(isExecutable)
+        {
+            if(isLeafCommand)
+            {
+                var executable = GetExecutable(invocationContext, commandData);
+                executables.Add(executable);
+            }
+            foreach(var subCommandData in commandData.Commands)
+            {
+                GetExecutables(invocationContext, subCommandData, executables);
+            }
+        }
+    }
+
+    public async Task<ICommandExecutionResult> ExecuteAsync(InvocationContext invocationContext)
     {
-        string commandPath = context.ParseResult.CommandResult.Command
+        string commandPath = invocationContext.ParseResult.CommandResult.Command
             .GetPath()
             .Replace("/Commandir", string.Empty);
                             
@@ -168,76 +211,52 @@ public sealed class CommandExecutor
         if(commandData == null)
             throw new Exception($"Failed to find command data data using path: {commandPath}");
 
-        // Manually surface any parse results that should prevent command execution.
+        // Manually surface any parse errors that should prevent command execution.
         // This is required because we're using Middlware to bypass the standard command execution pipeline.
         // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
-        var validationResult = TryValidateParseResult(context);
+        var validationResult = ValidateParseResult(invocationContext);
         if(validationResult != null)
             return validationResult;
 
-        if(commandData.Commands.Count == 0)
+        var executables = new List<Executable>();
+        GetExecutables(invocationContext, commandData, executables);
+
+        // Decide if child commands should be executed serially (the default) or in parallel.
+        // This applies for all child commands - there is no way to have some children execution serially and others in parallel (yet).
+        var parameters = ResolveParameters(invocationContext, commandData);
+        
+        bool parallel = false;
+        if(parameters.TryGetValue("parallel", out object? parallelObj))
         {
-            // This is a leaf command.
-            var (executor, executionContext) = GetExecutionInfo(context, commandData);
-            var result = await executor.ExecuteAsync(executionContext);
-            return new SuccessfulCommandExecution(new [] {result});
+            parallel = Convert.ToBoolean(parallelObj);
         }
-        else
-        {
-            // This is a non-leaf (internal) command.
-            
-            // Resolve parameters as if we were executing the command directly.
-            var parameters = ResolveParameters(context, commandData);
 
-            // Internal (child) commands are not executable by default.
-            bool executable = false;
-
-            if(parameters.TryGetValue("executable", out object? executableObj))
-            {
-                executable = Convert.ToBoolean(executableObj);
-            }
-
-            if(!executable)
-            {
-                return new FailedCommandExecution($"Command `{commandData.Path}` is not marked as executable");
-            }
-
-            // Decide if child commands should be executed serially (the default) or in parallel.
-            bool parallel = false;
-            if(parameters.TryGetValue("parallel", out object? parallelObj))
-            {
-                parallel = Convert.ToBoolean(parallelObj);
-            }
-
-            var results = new List<object?>();
-            List<Task<object?>> subCommandTasks = new List<Task<object?>>();
-            foreach(var subCommandData in commandData.Commands)
-            {    
-                var (executor, executionContext) = GetExecutionInfo(context, subCommandData);
-
-                var subCommandTask = executor.ExecuteAsync(executionContext);
-                if(parallel)
-                {
-                    // Defer execution until later.
-                    subCommandTasks.Add(subCommandTask);
-                }
-                else
-                {
-                    // Execute each task inline.
-                    results.Add(await subCommandTask);
-                }
-            }
-            
+        var results = new List<object?>();
+        List<Task<object?>> subCommandTasks = new List<Task<object?>>();
+        foreach(var executable in executables)
+        {    
+            var subCommandTask = executable.ExecuteAsync();
             if(parallel)
             {
-                await Task.WhenAll(subCommandTasks.ToArray());
-                foreach(var subCommandTask in subCommandTasks)
-                {
-                    results.Add(await subCommandTask);
-                }
+                // Defer execution until later.
+                subCommandTasks.Add(subCommandTask);
             }
-
-            return new SuccessfulCommandExecution(results);
+            else
+            {
+                // Execute each task inline.
+                results.Add(await subCommandTask);
+            }
         }
+        
+        if(parallel)
+        {
+            await Task.WhenAll(subCommandTasks.ToArray());
+            foreach(var subCommandTask in subCommandTasks)
+            {
+                results.Add(await subCommandTask);
+            }
+        }
+
+        return new SuccessfulCommandExecution(results);
     }
 }
