@@ -127,6 +127,8 @@ public sealed class CommandExecutor
             _executionContext = executionContext;
         }
 
+        public string Path => _executionContext.Path;
+
         public Task<object?> ExecuteAsync()
         {
             return _executor.ExecuteAsync(_executionContext);
@@ -235,6 +237,7 @@ public sealed class CommandExecutor
         List<Task<object?>> subCommandTasks = new List<Task<object?>>();
         foreach(var executable in executables)
         {    
+            Console.WriteLine($"Executable: {executable.Path}");
             var subCommandTask = executable.ExecuteAsync();
             if(parallel)
             {

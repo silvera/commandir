@@ -1,6 +1,7 @@
 using Commandir.Commands;
 using Commandir.Yaml;
 using Microsoft.Extensions.Logging.Abstractions;
+using System;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using System.IO;
@@ -8,6 +9,26 @@ using System.Threading.Tasks;
 using Xunit;
 
 namespace Commandir.Tests;
+
+internal sealed class TempFile : IDisposable
+{
+    public string FileName { get; }
+    public TempFile()
+    {
+        FileName = Path.GetTempFileName();
+    }
+
+    public void Dispose()
+    {
+        File.Delete(FileName);
+    }
+
+    public bool ContentEqual(string expectedContent)
+    {
+        string fileContent = File.ReadAllText(FileName).TrimEnd('\n');
+        return fileContent == expectedContent;
+    }
+}
 
 public abstract class TestsBase
 {
