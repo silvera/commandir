@@ -20,11 +20,11 @@ public sealed class ExecutionContext : IExecutionContext
 
     public IParameterContext ParameterContext { get; } 
 
-    public ExecutionContext(ILoggerFactory loggerFactory, CancellationToken cancellationToken, string path, Dictionary<string, object?> parameters)
+    public ExecutionContext(ILoggerFactory loggerFactory, CancellationToken cancellationToken, string path, ParameterContext parameterContext)
     {
         LoggerFactory = loggerFactory;
         CancellationToken = cancellationToken;
         Path = path;
-        ParameterContext = new ParameterContext(parameters);
+        ParameterContext = parameterContext;
     }
 }

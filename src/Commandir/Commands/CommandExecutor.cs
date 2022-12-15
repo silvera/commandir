@@ -3,7 +3,6 @@ using Commandir.Yaml;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Linq;
 
 namespace Commandir.Commands;
 
@@ -89,7 +88,7 @@ public sealed class CommandExecutor
             dst[name] = value;
     }
 
-    private static Dictionary<string, object?> ResolveParameters(InvocationContext context, YamlCommandData commandData)
+    private ParameterContext GetParameterContext(InvocationContext invocationContext, YamlCommandData commandData)
     {
         Dictionary<string, object?> parameters = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
@@ -103,21 +102,20 @@ public sealed class CommandExecutor
         AddOrUpdateParameters(parameters, commandData.Parameters);
 
         // Add dynamic parameters from this command invocation.
-        var command = context.ParseResult.CommandResult.Command;
+        var command = invocationContext.ParseResult.CommandResult.Command;
         foreach(Argument argument in command.Arguments)
         {
-            object? value = context.ParseResult.GetValueForArgument(argument);
+            object? value = invocationContext.ParseResult.GetValueForArgument(argument);
             AddOrUpdateParameter(parameters, argument.Name, value);
         }
         foreach(Option option in command.Options)
         {
-            object? value = context.ParseResult.GetValueForOption(option);
+            object? value = invocationContext.ParseResult.GetValueForOption(option);
             AddOrUpdateParameter(parameters, option.Name, value);
         }
 
-        return parameters;
+        return new ParameterContext(parameters);
     }
-
     private sealed class Executable
     {
         private readonly IExecutor _executor;
@@ -136,11 +134,8 @@ public sealed class CommandExecutor
         }
     }
 
-    private Executable GetExecutable(InvocationContext context, YamlCommandData commandData)
+    private Executable GetExecutable(InvocationContext context, YamlCommandData commandData, ParameterContext parameterContext)
     {
-        // Resolve parameters.
-        var parameters = ResolveParameters(context, commandData);
-
         if(commandData.Executor is null)
             throw new Exception($"Executor is null");
 
@@ -151,24 +146,26 @@ public sealed class CommandExecutor
         if(executor == null)
             throw new Exception($"Failed to create executor: {executorType}");
 
-        var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), commandData.Path!, parameters);
+        var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), commandData.Path!, parameterContext);
         return new Executable(executor, executionContext);
     }   
 
     private static ICommandExecutionResult? ValidateParseResult(InvocationContext invocationContext)
     {
+        var parseErrors = invocationContext.ParseResult.Errors; 
+        
         // Check for unexpected parse errors
-        if(invocationContext.ParseResult.Errors.Count > 0)
+        if(parseErrors.Count > 0)
         {
-            if(invocationContext.ParseResult.Errors.Count > 1)
+            if(parseErrors.Count > 1)
             {
-                // There is more than one parse error; return the last failure.
-                return new FailedCommandExecution(invocationContext.ParseResult.Errors.Last().Message);
+                // There is more than one parse error; return the last error.
+                return new FailedCommandExecution(parseErrors.Last().Message);
             }
             else
             {
-                // Ensure the one parse error is expected.
-                var error = invocationContext.ParseResult.Errors.First();
+                // Ensure the one parse error is the expected error.
+                var error = parseErrors.First();
                 if(error.Message != "Required command was not provided.")
                     return new FailedCommandExecution(error.Message);
             }
@@ -181,11 +178,11 @@ public sealed class CommandExecutor
     {   
         bool isLeafCommand = commandData.Commands.Count == 0;
 
-        var parameters = ResolveParameters(invocationContext, commandData);
-
         // Internal commands are not executable by default but leaf commands are.
         bool isExecutable = isLeafCommand;
-        if(parameters.TryGetValue("executable", out object? executableObj))
+
+        var parameterContext = GetParameterContext(invocationContext, commandData);
+        if(parameterContext.Parameters.TryGetValue("executable", out object? executableObj))
         {
             isExecutable = Convert.ToBoolean(executableObj);
         }
@@ -194,7 +191,7 @@ public sealed class CommandExecutor
         {
             if(isLeafCommand)
             {
-                var executable = GetExecutable(invocationContext, commandData);
+                var executable = GetExecutable(invocationContext, commandData, parameterContext);
                 executables.Add(executable);
             }
             foreach(var subCommandData in commandData.Commands)
@@ -206,6 +203,13 @@ public sealed class CommandExecutor
 
     public async Task<ICommandExecutionResult> ExecuteAsync(InvocationContext invocationContext)
     {
+        // Manually surface any parse errors that should prevent command execution.
+        // This is required because we're using Middlware to bypass the standard command execution pipeline.
+        // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
+        var validationResult = ValidateParseResult(invocationContext);
+        if(validationResult != null)
+            return validationResult;
+
         string commandPath = invocationContext.ParseResult.CommandResult.Command
             .GetPath()
             .Replace("/Commandir", string.Empty);
@@ -214,27 +218,20 @@ public sealed class CommandExecutor
         if(commandData == null)
             throw new Exception($"Failed to find command data data using path: {commandPath}");
 
-        // Manually surface any parse errors that should prevent command execution.
-        // This is required because we're using Middlware to bypass the standard command execution pipeline.
-        // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
-        var validationResult = ValidateParseResult(invocationContext);
-        if(validationResult != null)
-            return validationResult;
-
-        var executables = new List<Executable>();
-        GetExecutables(invocationContext, commandData, executables);
-
         // Decide if child commands should be executed serially (the default) or in parallel.
         // This applies for all child commands - there is no way to have some children execution serially and others in parallel (yet).
-        var parameters = ResolveParameters(invocationContext, commandData);
+        var parameterContext = GetParameterContext(invocationContext, commandData);
         
         bool parallel = false;
-        if(parameters.TryGetValue("parallel", out object? parallelObj))
+        if(parameterContext.Parameters.TryGetValue("parallel", out object? parallelObj))
         {
             parallel = Convert.ToBoolean(parallelObj);
         }
 
-        var results = new List<object?>();
+        var executables = new List<Executable>();
+        GetExecutables(invocationContext, commandData, executables);
+
+        var commandResults = new List<object?>();
 
         if(parallel)
         {
@@ -245,17 +242,17 @@ public sealed class CommandExecutor
             await Task.WhenAll(executableTasks);
             foreach(var executableTask in executableTasks)
             {
-                results.Add(await executableTask);
+                commandResults.Add(await executableTask);
             }
         }
         else
         {
             foreach(var executable in executables)
             {
-                results.Add(await executable.ExecuteAsync());
+                commandResults.Add(await executable.ExecuteAsync());
             }
         }
 
-        return new SuccessfulCommandExecution(results);
+        return new SuccessfulCommandExecution(commandResults);
     }
 }
