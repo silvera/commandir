@@ -9,7 +9,7 @@ public class BasicCommandExecutionTests : TestsBase
     {
         return $@"---
             commands:
-               - name: basic-commands
+               - name: basic-tests
                  executor: commandir.executors.run
                  parameters:
                     greeting: Hello
@@ -29,7 +29,7 @@ public class BasicCommandExecutionTests : TestsBase
     {
         using var file1 = new TempFile(); 
         string yaml = GetCommands(file1.FileName);
-        await RunCommandAsync(yaml, new [] {"basic-commands", "World"});
+        await RunCommandAsync(yaml, new [] {"basic-tests", "World"});
         Assert.True(file1.ContentEqual("Hello World"));
     }
 
@@ -38,7 +38,7 @@ public class BasicCommandExecutionTests : TestsBase
     {
         using var file1 = new TempFile(); 
         string yaml = GetCommands(file1.FileName);
-        await RunCommandAsync(yaml, new [] {"basic-commands", "World", "--greeting", "Hey"});
+        await RunCommandAsync(yaml, new [] {"basic-tests", "World", "--greeting", "Hey"});
         Assert.True(file1.ContentEqual("Hey World"));
     }
 }

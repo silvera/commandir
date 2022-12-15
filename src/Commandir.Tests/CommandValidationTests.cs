@@ -10,7 +10,7 @@ public class CommandValidationTests : TestsBase
     {
         return $@"---
             commands:
-               - name: failed-tests
+               - name: validation-tests
                  parameters:
                     executable: true
                  commands:
@@ -27,9 +27,10 @@ public class CommandValidationTests : TestsBase
     {
         using var file1 = new TempFile(); 
         string yaml = GetCommands(file1.FileName);
-        var result = await RunCommandAsync(yaml, new [] {"failed-tsts"});
+        var result = await RunCommandAsync(yaml, new [] {"validation-tsts"});
         var failure = result as FailedCommandExecution;
-        Assert.Equal("Unrecognized command or argument 'failed-tsts'.", failure.Error);
+        Assert.NotNull(failure);
+        Assert.Equal("Unrecognized command or argument 'validation-tsts'.", failure.Error);
     }
 
     [Fact]
@@ -37,8 +38,9 @@ public class CommandValidationTests : TestsBase
     {
         using var file1 = new TempFile();
         string yaml = GetCommands(file1.FileName);
-        var result = await RunCommandAsync(yaml, new [] {"failed-tests", "build", "foo"});
+        var result = await RunCommandAsync(yaml, new [] {"validation-tests", "build", "foo"});
         var failure = result as FailedCommandExecution;
+        Assert.NotNull(failure);
         Assert.Equal("Unrecognized command or argument 'foo'.", failure.Error);
     }
 
@@ -47,8 +49,9 @@ public class CommandValidationTests : TestsBase
     {
         using var file1 = new TempFile(); 
         string yaml = GetCommands(file1.FileName);
-        var result = await RunCommandAsync(yaml, new [] {"failed-tests", "bld"});
+        var result = await RunCommandAsync(yaml, new [] {"validation-tests", "bld"});
         var failure = result as FailedCommandExecution;
+        Assert.NotNull(failure);
         Assert.Equal("Unrecognized command or argument 'bld'.", failure.Error);
     }
 }
