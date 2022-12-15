@@ -1,7 +1,6 @@
 using Commandir.Interfaces;
 using Commandir.Yaml;
 using Microsoft.Extensions.Logging;
-using System.CommandLine;
 using System.CommandLine.Invocation;
 
 namespace Commandir.Commands;
@@ -60,62 +59,62 @@ public sealed class CommandExecutor
         return types;
     }
 
-    private static List<YamlCommandData> GetParentCommands(YamlCommandData commandData)
-    {
-        var components = new List<YamlCommandData>();
-        var current = commandData.Parent;
-        while(current != null)
-        {
-            components.Add(current);
-            current = current.Parent;
-        }
+    // private static List<YamlCommandData> GetParentCommands(YamlCommandData commandData)
+    // {
+    //     var components = new List<YamlCommandData>();
+    //     var current = commandData.Parent;
+    //     while(current != null)
+    //     {
+    //         components.Add(current);
+    //         current = current.Parent;
+    //     }
 
-        components.Reverse();
-        return components;
-    }
+    //     components.Reverse();
+    //     return components;
+    // }
 
-    private static void AddOrUpdateParameters(Dictionary<string, object?> dst, Dictionary<string, object?> src)
-    {
-        foreach(var pair in src)
-        {
-            AddOrUpdateParameter(dst, pair.Key, pair.Value);
-        }
-    }
+    // private static void AddOrUpdateParameters(Dictionary<string, object?> dst, Dictionary<string, object?> src)
+    // {
+    //     foreach(var pair in src)
+    //     {
+    //         AddOrUpdateParameter(dst, pair.Key, pair.Value);
+    //     }
+    // }
 
-    private static void AddOrUpdateParameter(Dictionary<string, object?> dst, string name, object? value)
-    {
-        if(value != null)
-            dst[name] = value;
-    }
+    // private static void AddOrUpdateParameter(Dictionary<string, object?> dst, string name, object? value)
+    // {
+    //     if(value != null)
+    //         dst[name] = value;
+    // }
 
-    private ParameterContext GetParameterContext(InvocationContext invocationContext, YamlCommandData commandData)
-    {
-        Dictionary<string, object?> parameters = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+    // private ParameterContext GetParameterContext(InvocationContext invocationContext, YamlCommandData commandData)
+    // {
+    //     Dictionary<string, object?> parameters = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
-        // Add static parameters from parent commands.
-        foreach(var parentCommand in GetParentCommands(commandData))
-        {
-            AddOrUpdateParameters(parameters, parentCommand.Parameters);
-        }
+    //     // Add static parameters from parent commands.
+    //     foreach(var parentCommand in GetParentCommands(commandData))
+    //     {
+    //         AddOrUpdateParameters(parameters, parentCommand.Parameters);
+    //     }
 
-        // Add static parameters from this command.
-        AddOrUpdateParameters(parameters, commandData.Parameters);
+    //     // Add static parameters from this command.
+    //     AddOrUpdateParameters(parameters, commandData.Parameters);
 
-        // Add dynamic parameters from this command invocation.
-        var command = invocationContext.ParseResult.CommandResult.Command;
-        foreach(Argument argument in command.Arguments)
-        {
-            object? value = invocationContext.ParseResult.GetValueForArgument(argument);
-            AddOrUpdateParameter(parameters, argument.Name, value);
-        }
-        foreach(Option option in command.Options)
-        {
-            object? value = invocationContext.ParseResult.GetValueForOption(option);
-            AddOrUpdateParameter(parameters, option.Name, value);
-        }
+    //     // Add dynamic parameters from this command invocation.
+    //     var command = invocationContext.ParseResult.CommandResult.Command;
+    //     foreach(Argument argument in command.Arguments)
+    //     {
+    //         object? value = invocationContext.ParseResult.GetValueForArgument(argument);
+    //         AddOrUpdateParameter(parameters, argument.Name, value);
+    //     }
+    //     foreach(Option option in command.Options)
+    //     {
+    //         object? value = invocationContext.ParseResult.GetValueForOption(option);
+    //         AddOrUpdateParameter(parameters, option.Name, value);
+    //     }
 
-        return new ParameterContext(parameters);
-    }
+    //     return new ParameterContext(parameters);
+    // }
     private sealed class Executable
     {
         private readonly IExecutor _executor;
@@ -181,8 +180,9 @@ public sealed class CommandExecutor
         // Internal commands are not executable by default but leaf commands are.
         bool isExecutable = isLeafCommand;
 
-        var parameterContext = GetParameterContext(invocationContext, commandData);
-        if(parameterContext.Parameters.TryGetValue("executable", out object? executableObj))
+        var parameterContext = new ParameterContext(invocationContext, commandData);
+        object? executableObj = parameterContext.GetParameterValue("executable");
+        if(executableObj is not null)
         {
             isExecutable = Convert.ToBoolean(executableObj);
         }
@@ -220,10 +220,11 @@ public sealed class CommandExecutor
 
         // Decide if child commands should be executed serially (the default) or in parallel.
         // This applies for all child commands - there is no way to have some children execution serially and others in parallel (yet).
-        var parameterContext = GetParameterContext(invocationContext, commandData);
+        var parameterContext = new ParameterContext(invocationContext, commandData);
         
         bool parallel = false;
-        if(parameterContext.Parameters.TryGetValue("parallel", out object? parallelObj))
+        object? parallelObj = parameterContext.GetParameterValue("parallel");
+        if(parallelObj is not null)
         {
             parallel = Convert.ToBoolean(parallelObj);
         }

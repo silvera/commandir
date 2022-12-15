@@ -1,4 +1,3 @@
-
 using Commandir.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -14,7 +13,8 @@ public sealed class Run : IExecutor
 
         var cancellationToken = context.CancellationToken; 
 
-        if(!context.ParameterContext.Parameters.TryGetValue("command", out object? commandObj))
+        object? commandObj = context.ParameterContext.GetParameterValue("command");
+        if(commandObj is null)
             throw new Exception("Failed to find parameter `command`");
 
         string? command = Convert.ToString(commandObj);
@@ -23,7 +23,7 @@ public sealed class Run : IExecutor
 
         string shell = "bash";
 
-        string formattedCommand = context.ParameterContext.Format(command);
+        string formattedCommand = context.ParameterContext.FormatParameters(command);
 
         // Create a new file in the current directory.
         string path = context.Path.Replace("/", "_");

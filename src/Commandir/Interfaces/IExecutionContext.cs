@@ -20,7 +20,7 @@ public sealed class ExecutionContext : IExecutionContext
 
     public IParameterContext ParameterContext { get; } 
 
-    public ExecutionContext(ILoggerFactory loggerFactory, CancellationToken cancellationToken, string path, ParameterContext parameterContext)
+    public ExecutionContext(ILoggerFactory loggerFactory, CancellationToken cancellationToken, string path, IParameterContext parameterContext)
     {
         LoggerFactory = loggerFactory;
         CancellationToken = cancellationToken;
