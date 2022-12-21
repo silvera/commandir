@@ -5,6 +5,9 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace Commandir.Commands;
 
+/// <summary>
+/// Builds a tree of System.CommandLine commands based on the yaml-formatted command definitions.
+/// </summary>
 public sealed class YamlCommandBuilder
 {
     private readonly string _yaml;
@@ -19,6 +22,9 @@ public sealed class YamlCommandBuilder
             .Build();
     }
 
+    /// <summary>
+    /// Returns the root command. 
+    /// </summary>
     public CommandWithData Build()
     {
         CommandData rootCommandData = _deserializer.Deserialize<CommandData>(_yaml); 

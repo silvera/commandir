@@ -2,12 +2,12 @@ namespace Commandir.Commands;
 
 internal static class CommandExtensions
 {
-    /// <remarks>
+    /// <summary>
     /// Returns the path for the command.
     /// Consider a command 'hello' with subcommand 'world'.
     /// The path for 'hello' is '/Commandir/hello/'.
     /// The path for 'world' is '/Commandir/hello/world'.
-    /// </remarks>
+    /// </summary>
     internal static string GetPath(this CommandWithData command)
     {
         List<CommandWithData> commands = command.GetParentCommands();

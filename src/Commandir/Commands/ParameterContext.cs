@@ -5,7 +5,10 @@ using System.CommandLine.Invocation;
 
 namespace Commandir.Commands;
 
-public sealed class ParameterContext : IParameterContext
+/// <summary>
+/// Encapsulates the parameters used by an Executor.
+/// </summary>
+internal sealed class ParameterContext : IParameterContext
 {
     private readonly Dictionary<string, object?> _parameters;
     private readonly Stubble.Core.StubbleVisitorRenderer _renderer = new StubbleBuilder().Build();
@@ -15,6 +18,9 @@ public sealed class ParameterContext : IParameterContext
         return _renderer.Render(template, _parameters);   
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     public object? GetParameterValue(string parameterName)
     {
         _parameters.TryGetValue(parameterName, out object? parameterValue);

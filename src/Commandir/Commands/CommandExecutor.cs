@@ -5,14 +5,21 @@ using System.CommandLine.Parsing;
 
 namespace Commandir.Commands;
 
-// Marker interface for command execution result types.
+/// <summary>
+/// Marker interface for command execution result types.
+/// </summary>
 public interface ICommandExecutionResult
 {
 }
 
-// Represents a failed command execution.
-public sealed class FailedCommandExecution : ICommandExecutionResult
+/// <summary>
+/// Represents a failed command execution.
+/// </summary>
+internal sealed class FailedCommandExecution : ICommandExecutionResult
 {   
+    /// <summary>
+    /// The reason for the command execution failure. 
+    /// </summary>
     public string Error { get; }
     public FailedCommandExecution(string error)
     {
@@ -20,9 +27,15 @@ public sealed class FailedCommandExecution : ICommandExecutionResult
     }
 }
 
-// Represents a successful command execution.
-public sealed class SuccessfulCommandExecution : ICommandExecutionResult
+/// <summary>
+/// Represents a successful command execution.
+/// </summary>
+internal sealed class SuccessfulCommandExecution : ICommandExecutionResult
 {
+    /// <summary>
+    /// The results of the execution of a command.
+    /// May contain the results of multiple subcommands. 
+    /// </summary>
     public IEnumerable<object?> Results { get; }
     public SuccessfulCommandExecution(IEnumerable<object?> results)
     {
@@ -30,27 +43,14 @@ public sealed class SuccessfulCommandExecution : ICommandExecutionResult
     }
 }
 
-public sealed class CommandExecutor
+/// <summary>
+/// Responsibe for executing the invoked command. 
+/// </summary>
+internal sealed class CommandExecutor
 {
     private readonly ILoggerFactory _loggerFactory;
     
     private readonly Dictionary<string, Type> _executorTypes;
-
-    private sealed class Executable
-    {
-        private readonly IExecutor _executor;
-        private readonly IExecutionContext _executionContext;
-        public Executable(IExecutor executor, IExecutionContext executionContext)
-        {
-            _executor = executor;
-            _executionContext = executionContext;
-        }
-
-        public Task<object?> ExecuteAsync()
-        {
-            return _executor.ExecuteAsync(_executionContext);
-        }
-    }
 
     public CommandExecutor(ILoggerFactory loggerFactory)
     {
@@ -88,6 +88,7 @@ public sealed class CommandExecutor
         List<object?> commandResults = new();
         if(parallel)
         {
+            // Execute tasks in parallel and wait for them to finish.
             Task<object?>[] executableTasks = executables
                 .Select(e => e.ExecuteAsync())
                 .ToArray();
@@ -100,6 +101,7 @@ public sealed class CommandExecutor
         }
         else
         {
+            // Execute tasks serially.
             foreach(var executable in executables)
             {
                 commandResults.Add(await executable.ExecuteAsync());
@@ -107,21 +109,6 @@ public sealed class CommandExecutor
         }
 
         return new SuccessfulCommandExecution(commandResults);
-    }
-
-    private static Dictionary<string, Type> GetExecutorTypes()
-    {
-        var types = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
-        foreach (Type type in typeof(Program).Assembly.GetTypes())
-        {
-            if (typeof(IExecutor).IsAssignableFrom(type))
-            {
-                string typeName = type.FullName!;
-
-                types.Add(typeName, type);
-            }
-        }
-        return types;
     }
 
     private static ICommandExecutionResult? ValidateParseResult(InvocationContext invocationContext)
@@ -138,7 +125,6 @@ public sealed class CommandExecutor
             }
             else
             {
-                
                 ParseError error = parseErrors.First();
              
                 // If no commands were supplied, return the error.
@@ -153,6 +139,37 @@ public sealed class CommandExecutor
 
         return null;
     }
+
+    private static Dictionary<string, Type> GetExecutorTypes()
+    {
+        Dictionary<string, Type> types = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+        foreach (Type type in typeof(Program).Assembly.GetTypes())
+        {
+            if (typeof(IExecutor).IsAssignableFrom(type))
+            {
+                string typeName = type.FullName!;
+                types.Add(typeName, type);
+            }
+        }
+        return types;
+    }
+
+    // Encapsulates an executor with its execution context (a closure).
+    private sealed class Executable
+    {
+        private readonly IExecutor _executor;
+        private readonly IExecutionContext _executionContext;
+        public Executable(IExecutor executor, IExecutionContext executionContext)
+        {
+            _executor = executor;
+            _executionContext = executionContext;
+        }
+
+        public Task<object?> ExecuteAsync()
+        {
+            return _executor.ExecuteAsync(_executionContext);
+        }
+    }    
 
     private void GetExecutables(InvocationContext invocationContext, CommandWithData command, List<Executable> executables)
     {   
