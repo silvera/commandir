@@ -1,5 +1,4 @@
 using Commandir.Commands;
-using Commandir.Yaml;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.CommandLine.Builder;
@@ -40,18 +39,16 @@ public abstract class TestsBase
 
     protected async Task<ICommandExecutionResult> RunCommandAsync(string yaml, string[] commandLineArgs)
     {
-        var commandDataProvider = new YamlCommandDataProvider(yaml);
-        var rootCommandData = commandDataProvider.GetRootCommandData();
-        var rootCommand = YamlCommandBuilder.Build(rootCommandData!);
+        var rootCommand = new YamlCommandBuilder(yaml).Build();
 
         var loggerFactory = new NullLoggerFactory();
-        var commandExecutor = new CommandExecutor(loggerFactory, commandDataProvider);
+        var commandExecutor = new CommandExecutor(loggerFactory /*commandDataProvider*/);
 
         ICommandExecutionResult? result = null;
         var parser = new CommandLineBuilder(rootCommand)
                 .AddMiddleware(async (context, next) =>
                 {
-                    result = await commandExecutor!.ExecuteAsync(context);
+                    result = await commandExecutor.ExecuteAsync(context);
                     if(result is FailedCommandExecution failure)
                     {
                         await next(context);

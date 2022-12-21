@@ -1,7 +1,7 @@
 using Commandir.Interfaces;
-using Commandir.Yaml;
 using Microsoft.Extensions.Logging;
 using System.CommandLine.Invocation;
+using System.CommandLine.Parsing;
 
 namespace Commandir.Commands;
 
@@ -33,31 +33,8 @@ public sealed class SuccessfulCommandExecution : ICommandExecutionResult
 public sealed class CommandExecutor
 {
     private readonly ILoggerFactory _loggerFactory;
-    private readonly  ICommandDataProvider<YamlCommandData> _commandDataProvider;
-
+    
     private readonly Dictionary<string, Type> _executorTypes;
-
-    public CommandExecutor(ILoggerFactory loggerFactory, ICommandDataProvider<YamlCommandData> commandDataProvider)
-    {
-        _loggerFactory = loggerFactory;
-        _commandDataProvider = commandDataProvider;
-        _executorTypes = GetExecutorTypes();
-    }
-
-    private static Dictionary<string, Type> GetExecutorTypes()
-    {
-        var types = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
-        foreach (Type type in typeof(Program).Assembly.GetTypes())
-        {
-            if (typeof(IExecutor).IsAssignableFrom(type))
-            {
-                string typeName = type.FullName!;
-
-                types.Add(typeName, type);
-            }
-        }
-        return types;
-    }
 
     private sealed class Executable
     {
@@ -69,80 +46,16 @@ public sealed class CommandExecutor
             _executionContext = executionContext;
         }
 
-        public string Path => _executionContext.Path;
-
         public Task<object?> ExecuteAsync()
         {
             return _executor.ExecuteAsync(_executionContext);
         }
     }
 
-    private Executable GetExecutable(InvocationContext context, YamlCommandData commandData, ParameterContext parameterContext)
+    public CommandExecutor(ILoggerFactory loggerFactory)
     {
-        if(commandData.Executor is null)
-            throw new Exception($"Executor is null");
-
-        if(!_executorTypes.TryGetValue(commandData.Executor!, out Type? executorType))
-            throw new Exception($"Failed to find executor: {commandData.Executor!}");
-
-        var executor = Activator.CreateInstance(executorType) as IExecutor;
-        if(executor == null)
-            throw new Exception($"Failed to create executor: {executorType}");
-
-        var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), commandData.Path!, parameterContext);
-        return new Executable(executor, executionContext);
-    }   
-
-    private static ICommandExecutionResult? ValidateParseResult(InvocationContext invocationContext)
-    {
-        var parseErrors = invocationContext.ParseResult.Errors; 
-        
-        // Check for unexpected parse errors
-        if(parseErrors.Count > 0)
-        {
-            if(parseErrors.Count > 1)
-            {
-                // There is more than one parse error; return the last error.
-                return new FailedCommandExecution(parseErrors.Last().Message);
-            }
-            else
-            {
-                // Ensure the one parse error is the expected error.
-                var error = parseErrors.First();
-                if(error.Message != "Required command was not provided.")
-                    return new FailedCommandExecution(error.Message);
-            }
-        }
-
-        return null;
-    }
-
-    private void GetExecutables(InvocationContext invocationContext, YamlCommandData commandData, List<Executable> executables)
-    {   
-        bool isLeafCommand = commandData.Commands.Count == 0;
-
-        // Internal commands are not executable by default but leaf commands are.
-        bool isExecutable = isLeafCommand;
-
-        var parameterContext = new ParameterContext(invocationContext, commandData);
-        object? executableObj = parameterContext.GetParameterValue("executable");
-        if(executableObj is not null)
-        {
-            isExecutable = Convert.ToBoolean(executableObj);
-        }
-
-        if(isExecutable)
-        {
-            if(isLeafCommand)
-            {
-                var executable = GetExecutable(invocationContext, commandData, parameterContext);
-                executables.Add(executable);
-            }
-            foreach(var subCommandData in commandData.Commands)
-            {
-                GetExecutables(invocationContext, subCommandData, executables);
-            }
-        }
+        _loggerFactory = loggerFactory;
+        _executorTypes = GetExecutorTypes();
     }
 
     public async Task<ICommandExecutionResult> ExecuteAsync(InvocationContext invocationContext)
@@ -150,21 +63,17 @@ public sealed class CommandExecutor
         // Manually surface any parse errors that should prevent command execution.
         // This is required because we're using Middlware to bypass the standard command execution pipeline.
         // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
-        var validationResult = ValidateParseResult(invocationContext);
+        ICommandExecutionResult? validationResult = ValidateParseResult(invocationContext);
         if(validationResult != null)
             return validationResult;
 
-        string commandPath = invocationContext.ParseResult.CommandResult.Command
-            .GetPath()
-            .Replace("/Commandir", string.Empty);
-                            
-        var commandData = _commandDataProvider.GetCommandData(commandPath);
-        if(commandData == null)
-            throw new Exception($"Failed to find command data data using path: {commandPath}");
-
+        CommandWithData? command = invocationContext.ParseResult.CommandResult.Command as CommandWithData;
+        if(command == null)
+            throw new Exception($"Failed to convert command to CommandWithData");
+        
         // Decide if child commands should be executed serially (the default) or in parallel.
         // This applies for all child commands - there is no way to have some children execution serially and others in parallel (yet).
-        var parameterContext = new ParameterContext(invocationContext, commandData);
+        var parameterContext = new ParameterContext(invocationContext, command);
         
         bool parallel = false;
         object? parallelObj = parameterContext.GetParameterValue("parallel");
@@ -173,14 +82,13 @@ public sealed class CommandExecutor
             parallel = Convert.ToBoolean(parallelObj);
         }
 
-        var executables = new List<Executable>();
-        GetExecutables(invocationContext, commandData, executables);
+        List<Executable> executables = new();
+        GetExecutables(invocationContext, command, executables);
 
-        var commandResults = new List<object?>();
-
+        List<object?> commandResults = new();
         if(parallel)
         {
-            var executableTasks = executables
+            Task<object?>[] executableTasks = executables
                 .Select(e => e.ExecuteAsync())
                 .ToArray();
             
@@ -199,5 +107,95 @@ public sealed class CommandExecutor
         }
 
         return new SuccessfulCommandExecution(commandResults);
+    }
+
+    private static Dictionary<string, Type> GetExecutorTypes()
+    {
+        var types = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+        foreach (Type type in typeof(Program).Assembly.GetTypes())
+        {
+            if (typeof(IExecutor).IsAssignableFrom(type))
+            {
+                string typeName = type.FullName!;
+
+                types.Add(typeName, type);
+            }
+        }
+        return types;
+    }
+
+    private static ICommandExecutionResult? ValidateParseResult(InvocationContext invocationContext)
+    {
+        IReadOnlyList<ParseError> parseErrors = invocationContext.ParseResult.Errors; 
+        
+        // Check for unexpected parse errors
+        if(parseErrors.Count > 0)
+        {
+            if(parseErrors.Count > 1)
+            {
+                // There is more than one parse error; return the last error.
+                return new FailedCommandExecution(parseErrors.Last().Message);
+            }
+            else
+            {
+                
+                ParseError error = parseErrors.First();
+             
+                // If no commands were supplied, return the error.
+                if(invocationContext.ParseResult.Tokens.Count == 0)
+                    return new FailedCommandExecution(error.Message);
+             
+                // Ensure the one parse error is the expected error.
+                if(error.Message != "Required command was not provided.")
+                    return new FailedCommandExecution(error.Message);
+            }
+        }
+
+        return null;
+    }
+
+    private void GetExecutables(InvocationContext invocationContext, CommandWithData command, List<Executable> executables)
+    {   
+        bool isLeafCommand = command.Subcommands.Count == 0;
+
+        // Internal commands are not executable by default but leaf commands are.
+        bool isExecutable = isLeafCommand;
+
+        var parameterContext = new ParameterContext(invocationContext, command);
+        object? executableObj = parameterContext.GetParameterValue("executable");
+        if(executableObj is not null)
+        {
+            isExecutable = Convert.ToBoolean(executableObj);
+        }
+
+        if(isExecutable)
+        {
+            if(isLeafCommand)
+            {
+                Executable executable = GetExecutable(invocationContext, command, parameterContext);
+                executables.Add(executable);
+            }
+            foreach(CommandWithData subCommand in command.Subcommands)
+            {
+                GetExecutables(invocationContext, subCommand, executables);
+            }
+        }
+    }
+
+    private Executable GetExecutable(InvocationContext context, CommandWithData command, ParameterContext parameterContext)
+    {
+        string? commandExecutor = command.Data.Executor;
+        if(commandExecutor is null)
+            throw new Exception($"Executor is null");
+
+        if(!_executorTypes.TryGetValue(commandExecutor, out Type? executorType))
+            throw new Exception($"Failed to find executor: {commandExecutor}");
+
+        IExecutor? executor = Activator.CreateInstance(executorType) as IExecutor;
+        if(executor == null)
+            throw new Exception($"Failed to create executor: {executorType}");
+
+        var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), command.GetPath(), parameterContext);
+        return new Executable(executor, executionContext);
     }
 }

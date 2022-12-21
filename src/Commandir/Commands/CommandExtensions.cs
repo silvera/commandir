@@ -1,27 +1,40 @@
-using Microsoft.Extensions.Hosting;
-using System.CommandLine;
-using System.CommandLine.NamingConventionBinder;
-
 namespace Commandir.Commands;
 
 internal static class CommandExtensions
 {
-    internal static string GetPath(this Command command)
+    /// <remarks>
+    /// Returns the path for the command.
+    /// Consider a command 'hello' with subcommand 'world'.
+    /// The path for 'hello' is '/Commandir/hello/'.
+    /// The path for 'world' is '/Commandir/hello/world'.
+    /// </remarks>
+    internal static string GetPath(this CommandWithData command)
     {
-        List<string> components = new List<string>();
-        command.GetPathComponents(components);
-        components.Reverse();
-        return string.Concat(components);
+        List<CommandWithData> commands = command.GetParentCommands();
+        commands.Add(command);
+        return "/" + string.Join("/", commands.Select(i => i.Name));
     }
 
-    private static void GetPathComponents(this Command command, List<string> names)
+    internal static List<CommandWithData> GetParentCommands(this CommandWithData command)
     {
-        names.Add($"/{command.Name}");
+        List<CommandWithData> parentCommands = new();
+        command.GetParentCommands(parentCommands);
+        
+        // Reverse the list so the most distant parent is first.
+        parentCommands.Reverse();
+        
+        return parentCommands;
+    }
+
+    private static void GetParentCommands(this CommandWithData command, List<CommandWithData> parentCommands)
+    {
         foreach(var parent in command.Parents)
         {
-            if(parent is Command parentCommand)
+            // The Parents collection of a System.CommandLine Command include Arguments and Options, so we need to exclude them. 
+            if(parent is CommandWithData parentCommand)
             {
-                parentCommand.GetPathComponents(names);
+                parentCommands.Add(parentCommand);
+                GetParentCommands(parentCommand, parentCommands);           
             }
         }
     }

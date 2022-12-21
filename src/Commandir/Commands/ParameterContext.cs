@@ -1,5 +1,4 @@
 using Commandir.Interfaces;
-using Commandir.Yaml;
 using Stubble.Core.Builders;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -22,20 +21,6 @@ public sealed class ParameterContext : IParameterContext
         return parameterValue;
     }
 
-    private static List<YamlCommandData> GetParentCommands(YamlCommandData commandData)
-    {
-        var components = new List<YamlCommandData>();
-        var current = commandData.Parent;
-        while(current != null)
-        {
-            components.Add(current);
-            current = current.Parent;
-        }
-
-        components.Reverse();
-        return components;
-    }
-
     private static void AddOrUpdateParameters(Dictionary<string, object?> dst, Dictionary<string, object?> src)
     {
         foreach(var pair in src)
@@ -50,21 +35,20 @@ public sealed class ParameterContext : IParameterContext
             dst[name] = value;
     }
 
-    public ParameterContext(InvocationContext invocationContext, YamlCommandData commandData)
+    public ParameterContext(InvocationContext invocationContext, CommandWithData command)
     {
         Dictionary<string, object?> parameters = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
-        // Add static parameters from parent commands.
-        foreach(var parentCommand in GetParentCommands(commandData))
+        // Add static parameters from parent commands, starting with the most distant parent.
+        foreach(var parentCommand in command.GetParentCommands())
         {
-            AddOrUpdateParameters(parameters, parentCommand.Parameters);
+            AddOrUpdateParameters(parameters, parentCommand.Data.Parameters);
         }
 
         // Add static parameters from this command.
-        AddOrUpdateParameters(parameters, commandData.Parameters);
+        AddOrUpdateParameters(parameters, command.Data.Parameters);
 
         // Add dynamic parameters from this command invocation.
-        var command = invocationContext.ParseResult.CommandResult.Command;
         foreach(Argument argument in command.Arguments)
         {
             object? value = invocationContext.ParseResult.GetValueForArgument(argument);
