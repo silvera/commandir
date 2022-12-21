@@ -25,7 +25,7 @@ public sealed class YamlCommandBuilder
     /// <summary>
     /// Returns the root command. 
     /// </summary>
-    public CommandWithData Build()
+    internal CommandWithData Build()
     {
         CommandData rootCommandData = _deserializer.Deserialize<CommandData>(_yaml); 
         rootCommandData.Name = "Commandir";
