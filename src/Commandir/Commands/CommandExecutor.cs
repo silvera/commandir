@@ -142,7 +142,9 @@ internal sealed class CommandExecutor
 
     private static Dictionary<string, Type> GetExecutorTypes()
     {
-        Dictionary<string, Type> types = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+        // Ignore the case when looking up an executor to make it easier on the user. 
+        Dictionary<string, Type> types = new(StringComparer.OrdinalIgnoreCase);
+        
         foreach (Type type in typeof(Program).Assembly.GetTypes())
         {
             if (typeof(IExecutor).IsAssignableFrom(type))

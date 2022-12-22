@@ -19,7 +19,7 @@ internal sealed class ParameterContext : IParameterContext
     }
 
     /// <summary>
-    /// 
+    /// Returns the value of the given parameter or null.
     /// </summary>
     public object? GetParameterValue(string parameterName)
     {
@@ -43,7 +43,8 @@ internal sealed class ParameterContext : IParameterContext
 
     public ParameterContext(InvocationContext invocationContext, CommandWithData command)
     {
-        Dictionary<string, object?> parameters = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        // Ignore the case when looking up a parameter to make it easier on the user.
+        Dictionary<string, object?> parameters = new(StringComparer.OrdinalIgnoreCase);
 
         // Add static parameters from parent commands, starting with the most distant parent.
         foreach(var parentCommand in command.GetParentCommands())
@@ -60,6 +61,7 @@ internal sealed class ParameterContext : IParameterContext
             object? value = invocationContext.ParseResult.GetValueForArgument(argument);
             AddOrUpdateParameter(parameters, argument.Name, value);
         }
+        
         foreach(Option option in command.Options)
         {
             object? value = invocationContext.ParseResult.GetValueForOption(option);
