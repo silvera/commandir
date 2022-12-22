@@ -1,3 +1,4 @@
+using Commandir.Commands;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -29,7 +30,8 @@ public class BasicCommandExecutionTests : TestsBase
     {
         using var file1 = new TempFile(); 
         string yaml = GetCommands(file1.FileName);
-        await RunCommandAsync(yaml, new [] {"basic-tests", "World"});
+        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"basic-tests", "World"});
+        Assert.True(result is SuccessfulCommandExecution);
         Assert.True(file1.ContentEqual("Hello World"));
     }
 
@@ -38,7 +40,8 @@ public class BasicCommandExecutionTests : TestsBase
     {
         using var file1 = new TempFile(); 
         string yaml = GetCommands(file1.FileName);
-        await RunCommandAsync(yaml, new [] {"basic-tests", "World", "--greeting", "Hey"});
+        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"basic-tests", "World", "--greeting", "Hey"});
+        Assert.True(result is SuccessfulCommandExecution);
         Assert.True(file1.ContentEqual("Hey World"));
     }
 }
