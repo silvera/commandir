@@ -22,6 +22,11 @@ internal sealed class TempFile : IDisposable
         File.Delete(FileName);
     }
 
+    public string GetContent()
+    {
+        return File.ReadAllText(FileName).TrimEnd('\n');
+    }
+
     public bool ContentEqual(string expectedContent)
     {
         string fileContent = File.ReadAllText(FileName).TrimEnd('\n');

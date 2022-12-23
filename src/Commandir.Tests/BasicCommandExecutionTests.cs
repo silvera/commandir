@@ -31,6 +31,7 @@ public class BasicCommandExecutionTests : TestsBase
         using var file1 = new TempFile(); 
         string yaml = GetCommands(file1.FileName);
         ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"basic-tests", "World"});
+        System.Console.WriteLine($"Content={file1.GetContent()}");
         Assert.True(result is SuccessfulCommandExecution);
         Assert.True(file1.ContentEqual("Hello World"));
     }
