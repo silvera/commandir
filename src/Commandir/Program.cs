@@ -12,7 +12,7 @@ namespace Commandir
     { 
         public static async Task Main(string[] args)
         {
-            Serilog.Events.LogEventLevel commandirLogLevel = Serilog.Events.LogEventLevel.Warning;
+            Serilog.Events.LogEventLevel commandirLogLevel = Serilog.Events.LogEventLevel.Information;
             if(args.Length > 0)
             {
                 if(string.Equals(args[0], "--verbose", StringComparison.OrdinalIgnoreCase))

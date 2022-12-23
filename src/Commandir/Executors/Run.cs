@@ -13,6 +13,7 @@ internal sealed class Run : IExecutor
     public async Task<object?> ExecuteAsync(IExecutionContext context)
     {
         ILogger logger = context.LoggerFactory.CreateLogger<Run>();
+        logger.LogInformation("Executing command: {CommandPath}", context.Path);
 
         object? commandObj = context.ParameterContext.GetParameterValue("command");
         if(commandObj is null)
@@ -24,12 +25,12 @@ internal sealed class Run : IExecutor
 
         string formattedCommand = context.ParameterContext.FormatParameters(command);
 
-        // TODO: Determine the current OS and use the default runner for each (if no 'runner' parameter is specified by the user).
-        // Linux/MacOS: bash
+        // Determine the current OS and use the default runner for each (if no 'runner' parameter is specified by the user).
+        // Linux/MacOS/Others: bash
         // Windows: cmd.exe
 
         string runner = "bash";
-        if(System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             runner = "cmd.exe";
         }
@@ -48,6 +49,7 @@ internal sealed class Run : IExecutor
 
         try
         {
+            logger.LogInformation("Process Starting: {Runner} {File}", runner, scriptFilePath);
             var process = Process.Start(new ProcessStartInfo
             {
                 UseShellExecute = false,
@@ -59,6 +61,8 @@ internal sealed class Run : IExecutor
                 throw new Exception($"Failed to create process: {runner} with arguments: {scriptFilePath}");
     
             await process.WaitForExitAsync(context.CancellationToken);
+            int exitCode = process.ExitCode;
+            logger.LogInformation("Process Complete. ExitCode: {ExitCode}", exitCode);
             return process.ExitCode;
         }
         finally
