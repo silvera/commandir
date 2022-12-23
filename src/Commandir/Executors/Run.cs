@@ -23,11 +23,10 @@ internal sealed class Run : IExecutor
 
         string formattedCommand = context.ParameterContext.FormatParameters(command);
 
-        // TODO: Determine the current OS and use the default runner for each (if none is specified)
+        // TODO: Determine the current OS and use the default runner for each (if no 'runner' parameter is specified by the user).
         // Linux/MacOS: bash
         // Windows: cmd.exe
 
-        // The default runner
         string runner = "bash";
 
         // Create a new file in the current directory.
@@ -54,7 +53,7 @@ internal sealed class Run : IExecutor
             if(process == null)
                 throw new Exception($"Failed to create process: {runner} with arguments: {scriptFilePath}");
     
-            await process.WaitForExitAsync(context.CancellationToken);  
+            await process.WaitForExitAsync(context.CancellationToken);
             return process.ExitCode;
         }
         finally

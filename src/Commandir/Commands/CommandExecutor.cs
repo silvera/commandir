@@ -60,55 +60,62 @@ internal sealed class CommandExecutor
 
     public async Task<ICommandExecutionResult> ExecuteAsync(InvocationContext invocationContext)
     {
-        // Manually surface any parse errors that should prevent command execution.
-        // This is required because we're using Middlware to bypass the standard command execution pipeline.
-        // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
-        ICommandExecutionResult? validationResult = ValidateParseResult(invocationContext);
-        if(validationResult != null)
-            return validationResult;
-
-        CommandWithData? command = invocationContext.ParseResult.CommandResult.Command as CommandWithData;
-        if(command == null)
-            throw new Exception($"Failed to convert command to CommandWithData");
-        
-        // Decide if child commands should be executed serially (the default) or in parallel.
-        // This applies for all child commands - there is no way to have some children execution serially and others in parallel (yet).
-        var parameterContext = new ParameterContext(invocationContext, command);
-        
-        bool parallel = false;
-        object? parallelObj = parameterContext.GetParameterValue("parallel");
-        if(parallelObj is not null)
+        try
         {
-            parallel = Convert.ToBoolean(parallelObj);
-        }
+            // Manually surface any parse errors that should prevent command execution.
+            // This is required because we're using Middlware to bypass the standard command execution pipeline.
+            // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
+            ICommandExecutionResult? validationResult = ValidateParseResult(invocationContext);
+            if(validationResult != null)
+                return validationResult;
 
-        List<Executable> executables = new();
-        GetExecutables(invocationContext, command, executables);
-
-        List<object?> commandResults = new();
-        if(parallel)
-        {
-            // Execute tasks in parallel and wait for them to finish.
-            Task<object?>[] executableTasks = executables
-                .Select(e => e.ExecuteAsync())
-                .ToArray();
+            CommandWithData? command = invocationContext.ParseResult.CommandResult.Command as CommandWithData;
+            if(command == null)
+                throw new Exception($"Failed to convert command to CommandWithData");
             
-            await Task.WhenAll(executableTasks);
-            foreach(var executableTask in executableTasks)
+            // Decide if child commands should be executed serially (the default) or in parallel.
+            // This applies for all child commands - there is no way to have some children execution serially and others in parallel (yet).
+            var parameterContext = new ParameterContext(invocationContext, command);
+            
+            bool parallel = false;
+            object? parallelObj = parameterContext.GetParameterValue("parallel");
+            if(parallelObj is not null)
             {
-                commandResults.Add(await executableTask);
+                parallel = Convert.ToBoolean(parallelObj);
             }
-        }
-        else
-        {
-            // Execute tasks serially.
-            foreach(var executable in executables)
-            {
-                commandResults.Add(await executable.ExecuteAsync());
-            }
-        }
 
-        return new SuccessfulCommandExecution(commandResults);
+            List<Executable> executables = new();
+            GetExecutables(invocationContext, command, executables);
+
+            List<object?> commandResults = new();
+            if(parallel)
+            {
+                // Execute tasks in parallel and wait for them to finish.
+                Task<object?>[] executableTasks = executables
+                    .Select(e => e.ExecuteAsync())
+                    .ToArray();
+                
+                await Task.WhenAll(executableTasks);
+                foreach(var executableTask in executableTasks)
+                {
+                    commandResults.Add(await executableTask);
+                }
+            }
+            else
+            {
+                // Execute tasks serially.
+                foreach(var executable in executables)
+                {
+                    commandResults.Add(await executable.ExecuteAsync());
+                }
+            }
+
+            return new SuccessfulCommandExecution(commandResults);
+        }
+        catch(Exception e)
+        {
+            return new FailedCommandExecution(e.Message);
+        }
     }
 
     private static ICommandExecutionResult? ValidateParseResult(InvocationContext invocationContext)
