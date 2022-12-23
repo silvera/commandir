@@ -27,6 +27,12 @@ internal sealed class TempFile : IDisposable
         return File.ReadAllText(FileName).TrimEnd('\n');
     }
 
+    public void AssertContents(string expectedFileContents)
+    {
+        string fileContents = File.ReadAllText(FileName).TrimEnd('\n');
+        Assert.Equal(expectedFileContents, fileContents);
+    }
+
     public bool ContentEqual(string expectedContent)
     {
         string fileContent = File.ReadAllText(FileName).TrimEnd('\n');
