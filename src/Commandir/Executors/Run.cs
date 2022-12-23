@@ -49,7 +49,7 @@ internal sealed class Run : IExecutor
 
         try
         {
-            logger.LogInformation("Process Starting: {Runner} {File}", runner, scriptFilePath);
+            logger.LogInformation("Process Starting: {Runner} {File} {Command}", runner, scriptFilePath, formattedCommand);
             var process = Process.Start(new ProcessStartInfo
             {
                 UseShellExecute = false,
@@ -64,6 +64,11 @@ internal sealed class Run : IExecutor
             int exitCode = process.ExitCode;
             logger.LogInformation("Process Complete. ExitCode: {ExitCode}", exitCode);
             return process.ExitCode;
+        }
+        catch(Exception e)
+        {
+            logger.LogError(e, "Exeception while exeucting command: {Command}", formattedCommand);
+            return -1;
         }
         finally
         {
