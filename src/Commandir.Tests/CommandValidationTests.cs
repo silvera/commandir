@@ -30,7 +30,7 @@ public class CommandValidationTests : TestsBase
         var result = await RunCommandAsync(yaml, new [] {"validation-tsts"});
         var failure = result as FailedCommandExecution;
         Assert.NotNull(failure);
-        Assert.Equal("Unrecognized command or argument 'validation-tsts'.", failure.Error);
+        Assert.Equal("Unrecognized command or argument 'validation-tsts'.", failure!.Error);
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public class CommandValidationTests : TestsBase
         var result = await RunCommandAsync(yaml, new [] {"validation-tests", "build", "foo"});
         var failure = result as FailedCommandExecution;
         Assert.NotNull(failure);
-        Assert.Equal("Unrecognized command or argument 'foo'.", failure.Error);
+        Assert.Equal("Unrecognized command or argument 'foo'.", failure!.Error);
     }
 
     [Fact]
@@ -52,6 +52,6 @@ public class CommandValidationTests : TestsBase
         var result = await RunCommandAsync(yaml, new [] {"validation-tests", "bld"});
         var failure = result as FailedCommandExecution;
         Assert.NotNull(failure);
-        Assert.Equal("Unrecognized command or argument 'bld'.", failure.Error);
+        Assert.Equal("Unrecognized command or argument 'bld'.", failure!.Error);
     }
 }

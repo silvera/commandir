@@ -1,6 +1,7 @@
 using Commandir.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Commandir.Executors;
 
@@ -28,6 +29,10 @@ internal sealed class Run : IExecutor
         // Windows: cmd.exe
 
         string runner = "bash";
+        if(System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            runner = "cmd.exe";
+        }
 
         // Create a new file in the current directory.
         string scriptFileName = context.Path.Replace("/", "_").TrimStart('_') + ".sh";
