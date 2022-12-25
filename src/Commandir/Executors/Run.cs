@@ -38,7 +38,7 @@ internal sealed class Run : IExecutor
         logger.LogInformation("Runner: {Runner} Command: {Command}", runner, formattedCommand);
 
         // Create a new file in the current directory.
-        string scriptFileName = context.Path.Replace("/", "_").TrimStart('_') + ".sh";
+        string scriptFileName = context.Path.Replace("/", "_").TrimStart('_') + ".bat";
         string scriptFilePath = Path.Combine(Directory.GetCurrentDirectory(), scriptFileName);
         
         // Write the contents of the command to the file.
@@ -58,10 +58,11 @@ internal sealed class Run : IExecutor
                 ArgumentList = { "/c", scriptFilePath }
             };
             
-            logger.LogInformation("Process Starting: {Runner} {RunnerArgs}", runner, string.Join(",", processStartInfo.ArgumentList));
+            string commandLine = $"{runner} {string.Join(" ", processStartInfo.ArgumentList)}";
+            logger.LogInformation("Process Starting: {CommandLine}", commandLine);
             var process = Process.Start(processStartInfo);
             if(process == null)
-                throw new Exception($"Failed to create process `{runner}` with arguments `{string.Join(",", processStartInfo.ArgumentList)}`");
+                throw new Exception($"Failed to create process `{commandLine}`");
     
             await process.WaitForExitAsync(context.CancellationToken);
             int exitCode = process.ExitCode;
