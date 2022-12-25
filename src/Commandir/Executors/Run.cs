@@ -38,7 +38,7 @@ internal sealed class Run : IExecutor
         logger.LogInformation("Runner: {Runner} Command: {Command}", runner, formattedCommand);
 
         // Create a new file in the current directory.
-        string scriptFileName = context.Path.Replace("/", "_").TrimStart('_') + ".bat";
+        string scriptFileName = context.Path.Replace("/", "_").TrimStart('_') + ".cmd";
         string scriptFilePath = Path.Combine(Directory.GetCurrentDirectory(), scriptFileName);
         
         // Write the contents of the command to the file.
@@ -52,8 +52,9 @@ internal sealed class Run : IExecutor
         try
         {
             var processStartInfo = new ProcessStartInfo
-            {
+            {   CreateNoWindow = true,
                 UseShellExecute = false,
+                WorkingDirectory = Directory.GetCurrentDirectory(),
                 FileName = runner,
                 ArgumentList = { "/c", scriptFilePath }
             };
