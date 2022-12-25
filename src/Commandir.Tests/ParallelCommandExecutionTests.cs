@@ -1,11 +1,12 @@
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace Commandir.Tests;
 
 public class ParallelCommandExecutionTests : TestsBase
 {
-    private string GetCommands(bool parallel, string file1, string file2)
+    private string GetCommands(bool parallel, string sleepCommand, string file1, string file2)
     {
         return $@"---
             commands:
@@ -18,13 +19,13 @@ public class ParallelCommandExecutionTests : TestsBase
                       executor: commandir.executors.run
                       parameters:
                          command: |
-                            sleep 10;
+                            {sleepCommand}
                             echo Compiled > {file1}
                     - name: test
                       executor: commandir.executors.run
                       parameters:
                          command: |
-                            sleep 10;
+                            {sleepCommand}
                             echo Tested > {file2}
         ";
     }
@@ -36,7 +37,10 @@ public class ParallelCommandExecutionTests : TestsBase
     {
         using var file1 = new TempFile();
         using var file2 = new TempFile();
-        string yaml = GetCommands (parallel: parallel, file1.FileName, file2.FileName);
+        string sleepCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+        ? "timeout /t 10"
+        : "sleep 10;";
+        string yaml = GetCommands (parallel: parallel, sleepCommand, file1.FileName, file2.FileName);
         var runTask = RunCommandAsync(yaml, new [] {"parallel-tests"});
         await Task.WhenAny(runTask, Task.Delay(System.TimeSpan.FromSeconds(delaySeconds)));
         file1.AssertContents(file1Output);
