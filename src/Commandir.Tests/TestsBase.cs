@@ -25,19 +25,15 @@ internal sealed class TempFile : IDisposable
 
     public void AssertContents(string expectedFileContents)
     {
-        string fileContents = File.ReadAllText(FileName).TrimEnd('\n');
+        string fileContents = File
+            .ReadAllText(FileName)
+            .TrimEnd('\n', '\r', ' ');
         Assert.Equal(expectedFileContents, fileContents);
     }
 }
 
 public abstract class TestsBase
 {
-    protected void AssertCommandOutput(string fileName, string expectedOutput)
-    {
-        string fileContents = File.ReadAllText(fileName).TrimEnd('\n');
-        Assert.Equal(expectedOutput, fileContents);
-    }
-
     protected async Task<ICommandExecutionResult> RunCommandAsync(string yaml, string[] commandLineArgs)
     {
         var rootCommand = new YamlCommandBuilder(yaml).Build();
