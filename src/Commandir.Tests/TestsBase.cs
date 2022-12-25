@@ -23,21 +23,10 @@ internal sealed class TempFile : IDisposable
         File.Delete(FileName);
     }
 
-    public string GetContent()
-    {
-        return File.ReadAllText(FileName).TrimEnd('\n');
-    }
-
     public void AssertContents(string expectedFileContents)
     {
         string fileContents = File.ReadAllText(FileName).TrimEnd('\n');
         Assert.Equal(expectedFileContents, fileContents);
-    }
-
-    public bool ContentEqual(string expectedContent)
-    {
-        string fileContent = File.ReadAllText(FileName).TrimEnd('\n');
-        return fileContent == expectedContent;
     }
 }
 
@@ -54,7 +43,7 @@ public abstract class TestsBase
         var rootCommand = new YamlCommandBuilder(yaml).Build();
 
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-        var commandExecutor = new CommandExecutor(loggerFactory /*commandDataProvider*/);
+        var commandExecutor = new CommandExecutor(loggerFactory);
 
         ICommandExecutionResult? result = null;
         var parser = new CommandLineBuilder(rootCommand)
