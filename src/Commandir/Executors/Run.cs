@@ -32,8 +32,6 @@ internal abstract class RunnerBase
 
         string formattedCommand = executionContext.ParameterContext.FormatParameters(command);
 
-        logger.LogInformation("Runner: {Runner} Command: {Command}", _runnerName, formattedCommand);
-
         // Command needs to be written to a file executed by the specified runner.
         // Create a new file in the current directory.
         string runnerFileName = executionContext.Path
@@ -44,7 +42,7 @@ internal abstract class RunnerBase
         string runnerFilePath = Path.Combine(Directory.GetCurrentDirectory(), runnerFileName);
         
         // Write the contents of the command to the file.
-        logger.LogInformation("Creating file: {RunnerFile}", runnerFileName);
+        logger.LogInformation("Creating file: {RunnerFile} with contents: {RunnerFileContents}", runnerFileName, formattedCommand);
         
         using (var writer = new StreamWriter(runnerFilePath))
         {
