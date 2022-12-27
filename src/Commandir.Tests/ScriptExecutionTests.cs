@@ -1,13 +1,14 @@
 using Commandir.Commands;
 using System.IO;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace Commandir.Tests;
 
 public class ScriptExecutionTests : TestsBase
 {
-    private string GetCommands(string file1, string currentDirectory)
+    private string GetLinuxCommands(string currentDirectory, string file1)
     {
         return $@"---
             commands:
@@ -25,12 +26,33 @@ public class ScriptExecutionTests : TestsBase
                          command: {currentDirectory}/hello_world.sh > {file1}
         ";
     }
+    private string GetWindowsCommands(string currentDirectory, string file1)
+    {
+        return $@"---
+            commands:
+               - name: script-tests
+                 parameters:
+                    executable: true
+                 commands:
+                    - name: relative-path
+                      executor: commandir.executors.run
+                      parameters:
+                         command: hello_world.cmd > {file1}
+                    - name: absolute-path
+                      executor: commandir.executors.run
+                      parameters:
+                         command: {currentDirectory}/hello_world.cmd > {file1}
+        ";
+    }
 
     [Fact]
     public async Task RelativePath()
     {
         using var file1 = new TempFile(); 
-        string yaml = GetCommands(file1.FileName, Directory.GetCurrentDirectory());
+        string currentDirectory = Directory.GetCurrentDirectory();
+        string yaml = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? GetWindowsCommands(currentDirectory, file1.FileName)
+            : GetLinuxCommands(currentDirectory, file1.FileName);
         ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"script-tests", "relative-path"});
         Assert.True(result is SuccessfulCommandExecution);
         file1.AssertContents("Hello World!");
@@ -40,7 +62,10 @@ public class ScriptExecutionTests : TestsBase
     public async Task AbsolutePath()
     {
         using var file1 = new TempFile(); 
-        string yaml = GetCommands(file1.FileName, Directory.GetCurrentDirectory());
+        string currentDirectory = Directory.GetCurrentDirectory();
+        string yaml = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? GetWindowsCommands(currentDirectory, file1.FileName)
+            : GetLinuxCommands(currentDirectory, file1.FileName);
         ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"script-tests", "absolute-path"});
         Assert.True(result is SuccessfulCommandExecution);
         file1.AssertContents("Hello World!");
