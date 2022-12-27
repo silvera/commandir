@@ -1,4 +1,5 @@
 using Commandir.Interfaces;
+using Commandir.Executors;
 using Microsoft.Extensions.Logging;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
@@ -50,12 +51,9 @@ internal sealed class CommandExecutor
 {
     private readonly ILoggerFactory _loggerFactory;
     
-    private readonly Dictionary<string, Type> _executorTypes;
-
     public CommandExecutor(ILoggerFactory loggerFactory)
     {
         _loggerFactory = loggerFactory;
-        _executorTypes = GetExecutorTypes();
     }
 
     public async Task<ICommandExecutionResult> ExecuteAsync(InvocationContext invocationContext)
@@ -147,22 +145,6 @@ internal sealed class CommandExecutor
         return null;
     }
 
-    private static Dictionary<string, Type> GetExecutorTypes()
-    {
-        // Ignore the case when looking up an executor to make it easier on the user. 
-        Dictionary<string, Type> types = new(StringComparer.OrdinalIgnoreCase);
-        
-        foreach (Type type in typeof(Program).Assembly.GetTypes())
-        {
-            if (typeof(IExecutor).IsAssignableFrom(type))
-            {
-                string typeName = type.FullName!;
-                types.Add(typeName, type);
-            }
-        }
-        return types;
-    }
-
     // Encapsulates an executor with its execution context (a closure).
     private sealed class Executable
     {
@@ -210,17 +192,7 @@ internal sealed class CommandExecutor
 
     private Executable GetExecutable(InvocationContext context, CommandWithData command, ParameterContext parameterContext)
     {
-        string? commandExecutor = command.Data.Executor;
-        if(commandExecutor is null)
-            throw new Exception($"Executor is null");
-
-        if(!_executorTypes.TryGetValue(commandExecutor, out Type? executorType))
-            throw new Exception($"Failed to find executor: {commandExecutor}");
-
-        IExecutor? executor = Activator.CreateInstance(executorType) as IExecutor;
-        if(executor == null)
-            throw new Exception($"Failed to create executor: {executorType}");
-
+        IExecutor executor = new Run();
         var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), command.GetPath(), parameterContext);
         return new Executable(executor, executionContext);
     }

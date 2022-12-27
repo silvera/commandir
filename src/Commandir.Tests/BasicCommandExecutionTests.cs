@@ -11,7 +11,6 @@ public class BasicCommandExecutionTests : TestsBase
         return $@"---
             commands:
                - name: basic-tests
-                 executor: commandir.executors.run
                  parameters:
                     greeting: Hello
                     command: echo {{{{greeting}}}} {{{{name}}}} > {file1}

@@ -16,13 +16,11 @@ public class ParallelCommandExecutionTests : TestsBase
                     parallel: {parallel}
                  commands:
                     - name: compile
-                      executor: commandir.executors.run
                       parameters:
                          command: |
                             {sleepCommand}
                             echo Compiled > {file1}
                     - name: test
-                      executor: commandir.executors.run
                       parameters:
                          command: |
                             {sleepCommand}

@@ -7,12 +7,10 @@ commands:
      commands:
         - name: world
           description: Prints 'Hello World'
-          executor: commandir.executors.run
           parameters:
              command: echo "Hello World!"
    - name: greet
      description: Greets the user
-     executor: commandir.executors.run
      parameters:
         greeting: "Hello "
         command: "echo {{greeting}} {{name}}!"

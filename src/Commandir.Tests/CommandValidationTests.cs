@@ -15,7 +15,6 @@ public class CommandValidationTests : TestsBase
                     executable: true
                  commands:
                     - name: build
-                      executor: commandir.executors.run
                       parameters:
                          command: echo Built > {fileName}
 

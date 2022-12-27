@@ -17,11 +17,9 @@ public class ScriptExecutionTests : TestsBase
                     executable: true
                  commands:
                     - name: relative-path
-                      executor: commandir.executors.run
                       parameters:
                          command: ./hello_world.sh > {file1}
                     - name: absolute-path
-                      executor: commandir.executors.run
                       parameters:
                          command: {currentDirectory}/hello_world.sh > {file1}
         ";
@@ -35,11 +33,9 @@ public class ScriptExecutionTests : TestsBase
                     executable: true
                  commands:
                     - name: relative-path
-                      executor: commandir.executors.run
                       parameters:
                          command: CALL hello_world.bat > {file1}
                     - name: absolute-path
-                      executor: commandir.executors.run
                       parameters:
                          command: CALL {currentDirectory}/hello_world.bat > {file1}
         ";
