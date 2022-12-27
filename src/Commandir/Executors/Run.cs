@@ -7,12 +7,12 @@ namespace Commandir.Executors;
 
 internal abstract class RunnerBase
 {
-    private readonly string _runner;
+    private readonly string _runnerName;
     private readonly string _runnerExtension;
     private readonly string _runnerFlags;
-    protected RunnerBase(string runner, string runnerExtension, string runnerFlags)
+    protected RunnerBase(string runnerName, string runnerExtension, string runnerFlags)
     {
-        _runner = runner;
+        _runnerName = runnerName;
         _runnerExtension = runnerExtension;
         _runnerFlags = runnerFlags;
     }
@@ -32,7 +32,7 @@ internal abstract class RunnerBase
 
         string formattedCommand = executionContext.ParameterContext.FormatParameters(command);
 
-        logger.LogInformation("Runner: {Runner} Command: {Command}", _runner, formattedCommand);
+        logger.LogInformation("Runner: {Runner} Command: {Command}", _runnerName, formattedCommand);
 
         // Command needs to be written to a file executed by the specified runner.
         // Create a new file in the current directory.
@@ -57,7 +57,7 @@ internal abstract class RunnerBase
             {   CreateNoWindow = true,
                 UseShellExecute = false,
                 WorkingDirectory = Directory.GetCurrentDirectory(),
-                FileName = _runner,
+                FileName = _runnerName,
             };
 
             // Add runner flags (if any)
@@ -69,7 +69,7 @@ internal abstract class RunnerBase
             // Add script file
             processStartInfo.ArgumentList.Add(runnerFilePath);
 
-            string commandLine = $"{_runner} {string.Join(" ", processStartInfo.ArgumentList)}";
+            string commandLine = $"{_runnerName} {string.Join(" ", processStartInfo.ArgumentList)}";
             logger.LogInformation("Process Starting: {CommandLine}", commandLine);
             var process = Process.Start(processStartInfo);
             if(process == null)

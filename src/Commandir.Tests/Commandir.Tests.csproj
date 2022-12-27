@@ -23,6 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
+  <None Update="hello_world.sh">
+     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+   </None>
     <None Update="Commandir.yaml">
      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
    </None>
