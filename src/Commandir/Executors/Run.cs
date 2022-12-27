@@ -9,8 +9,8 @@ internal abstract class RunnerBase
 {
     private readonly string _runnerName;
     private readonly string _runnerExtension;
-    private readonly string _runnerFlags;
-    protected RunnerBase(string runnerName, string runnerExtension, string runnerFlags)
+    private readonly IReadOnlyList<string> _runnerFlags;
+    protected RunnerBase(string runnerName, string runnerExtension, IReadOnlyList<string> runnerFlags)
     {
         _runnerName = runnerName;
         _runnerExtension = runnerExtension;
@@ -61,12 +61,12 @@ internal abstract class RunnerBase
             };
 
             // Add runner flags (if any)
-            if(!string.IsNullOrWhiteSpace(_runnerFlags))
+            foreach(string runnerFlag in _runnerFlags)
             {
-                processStartInfo.Arguments = _runnerFlags;
+                processStartInfo.ArgumentList.Add(runnerFlag);
             }
             
-            // Add script file
+            // Add runner file
             processStartInfo.ArgumentList.Add(runnerFilePath);
 
             string commandLine = $"{_runnerName} {string.Join(" ", processStartInfo.ArgumentList)}";
@@ -96,7 +96,7 @@ internal abstract class RunnerBase
 internal sealed class BashRunner : RunnerBase
 {
     public BashRunner()
-        : base("bash", ".sh", string.Empty)
+        : base("bash", ".sh", Array.Empty<string>())
     {
     }
 }
@@ -104,7 +104,7 @@ internal sealed class BashRunner : RunnerBase
 internal sealed class CmdRunner : RunnerBase
 {
     public CmdRunner()
-        : base("cmd.exe", ".cmd", "/c")
+        : base("cmd.exe", ".cmd", new string[]{ "/c" })
     {
     }
 }
