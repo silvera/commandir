@@ -37,11 +37,11 @@ public class ScriptExecutionTests : TestsBase
                     - name: relative-path
                       executor: commandir.executors.run
                       parameters:
-                         command: hello_world.cmd > {file1}
+                         command: CALL hello_world.cmd > {file1}
                     - name: absolute-path
                       executor: commandir.executors.run
                       parameters:
-                         command: {currentDirectory}/hello_world.cmd > {file1}
+                         command: CALL {currentDirectory}/hello_world.cmd > {file1}
         ";
     }
 
