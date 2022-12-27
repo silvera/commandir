@@ -23,12 +23,15 @@
   </ItemGroup>
 
   <ItemGroup>
-  <None Update="hello_world.sh">
-     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-   </None>
+    <None Update="hello_world.cmd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="hello_world.sh">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Commandir.yaml">
-     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-   </None>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
