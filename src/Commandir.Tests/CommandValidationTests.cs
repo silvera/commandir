@@ -11,12 +11,13 @@ public class CommandValidationTests : TestsBase
         return $@"---
             commands:
                - name: validation-tests
+                 executor: test
                  parameters:
                     executable: true
                  commands:
                     - name: build
                       parameters:
-                         command: echo Built > {fileName}
+                         message: Built > {fileName}
 
         ";
     }

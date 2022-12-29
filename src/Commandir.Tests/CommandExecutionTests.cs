@@ -30,7 +30,7 @@ public class CommandExecutionTests : TestsBase
     {
         return $@"---
             commands:
-               - name: command-tests
+               - name: execution-tests
                  executor: test
                  parameters:
                     name: Default
@@ -50,11 +50,7 @@ public class CommandExecutionTests : TestsBase
     public async Task ArgumentOverridesParameter()
     { 
         string yaml = GetCommands();
-        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"command-tests", "World"});
-        // FailedCommandExecution failure = result as FailedCommandExecution;
-        // Assert.NotNull(failure);
-        // Assert.Equal(string.Empty, failure!.Error);
-        //System.Console.WriteLine($"Error={failure!.Error}");
+        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"execution-tests", "World"});
         SuccessfulCommandExecution? success = result as SuccessfulCommandExecution;
         Assert.NotNull(success);
         string? commandResult = success!.Results.First() as string;
@@ -65,7 +61,7 @@ public class CommandExecutionTests : TestsBase
     public async Task OptionOverridesArgument()
     {
         string yaml = GetCommands();
-        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"command-tests", "World", "--name", "Universe"});
+        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"execution-tests", "World", "--name", "Universe"});
         SuccessfulCommandExecution? success = result as SuccessfulCommandExecution;
         Assert.NotNull(success);
         string? commandResult = success!.Results.First() as string;
