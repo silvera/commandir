@@ -4,7 +4,7 @@ namespace Commandir.Executors;
 
 public sealed class Test : IExecutor
 {
-    public Task<object?> ExecuteAsync(IExecutionContext context)
+    public async Task<object?> ExecuteAsync(IExecutionContext context)
     {
         object? messageObj = context.ParameterContext.GetParameterValue("message");
         if(messageObj is null)
@@ -16,6 +16,16 @@ public sealed class Test : IExecutor
 
         string formattedMessageStr = context.ParameterContext.FormatParameters(messageStr);
 
-        return Task.FromResult<object?>(formattedMessageStr);
+        object? delaySecondsObj = context.ParameterContext.GetParameterValue("delaySeconds");
+        if(delaySecondsObj is not null)
+        {
+            int? delaySeconds = Convert.ToInt32(delaySecondsObj);
+            if(delaySeconds is not null)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(delaySeconds.Value));
+            }
+        }
+
+        return formattedMessageStr;
     }
 }

@@ -1,12 +1,13 @@
+using Commandir.Commands;
+using System.Linq;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices;
 using Xunit;
 
 namespace Commandir.Tests;
 
 public class ParallelCommandExecutionTests : TestsBase
 {
-    private string GetCommands(bool parallel, string sleepCommand, string file1, string file2)
+    private string GetCommands(bool parallel)
     {
         return $@"---
             commands:
@@ -16,32 +17,51 @@ public class ParallelCommandExecutionTests : TestsBase
                     parallel: {parallel}
                  commands:
                     - name: compile
+                      executor: test
                       parameters:
-                         command: |
-                            {sleepCommand}
-                            echo Compiled > {file1}
+                         message: Compiled
+                         delaySeconds: 10
                     - name: test
+                      executor: test
                       parameters:
-                         command: |
-                            {sleepCommand}
-                            echo Tested > {file2}
+                         message: Tested
+                         delaySeconds: 10
         ";
     }
 
     [Theory]
-    [InlineData(false, 15, "Compiled", "")]
-    [InlineData(true, 15, "Compiled", "Tested")] // Ignore the fact that it makes no sense to test before compiling...
-    public async Task ParallelTest(bool parallel, int delaySeconds, string file1Output, string file2Output)
+    [InlineData(false)]
+    [InlineData(true)] // Ignore the fact that it makes no sense to test before compiling...
+    public async Task ParallelTest(bool parallel)
     {
-        using var file1 = new TempFile();
-        using var file2 = new TempFile();
-        string sleepCommand = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-        ? "timeout /t 10"
-        : "sleep 10;";
-        string yaml = GetCommands (parallel: parallel, sleepCommand, file1.FileName, file2.FileName);
-        var runTask = RunCommandAsync(yaml, new [] {"parallel-tests"});
-        await Task.WhenAny(runTask, Task.Delay(System.TimeSpan.FromSeconds(delaySeconds)));
-        file1.AssertContents(file1Output);
-        file2.AssertContents(file2Output);
+        string yaml = GetCommands(parallel: parallel);
+        Task<ICommandExecutionResult> commandTask = RunCommandAsync(yaml, new [] {"parallel-tests"});
+        Task delayTask = Task.Delay(System.TimeSpan.FromSeconds(15));
+        var resultTask = await Task.WhenAny(commandTask, delayTask);
+        if(parallel)
+        {
+            // Command Time: ~10 seconds (10 per task)
+            // Delay Time 15 seconds
+            // Result: commandTask
+            Assert.Equal(commandTask, resultTask);
+            
+            SuccessfulCommandExecution? commandResult = await commandTask as SuccessfulCommandExecution;
+            Assert.NotNull(commandResult);
+            string? command1Result = commandResult!.Results.First() as string;
+            Assert.NotNull(command1Result);
+            Assert.Equal("Compiled", command1Result);
+            string? command2Result = commandResult!.Results.Last() as string;
+            Assert.NotNull(command2Result);
+            Assert.Equal("Tested", command2Result);
+        }
+        else
+        {
+            // Command Time: 20 seconds (10 per task)
+            // Delay Time 15 seconds
+            // Result: delayTask
+            Assert.Equal(delayTask, resultTask);
+
+            // We cannot validate the command results because the command task is not yet complete at this point. 
+        }
     }
 }
