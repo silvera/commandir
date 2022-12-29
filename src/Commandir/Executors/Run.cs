@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 
 namespace Commandir.Executors;
 
-internal abstract class RunnerBase
+internal class Runner
 {
     private readonly string _runnerName;
     private readonly string _runnerExtension;
     private readonly IReadOnlyList<string> _runnerFlags;
-    protected RunnerBase(string runnerName, string runnerExtension, IReadOnlyList<string> runnerFlags)
+    public Runner(string runnerName, string runnerExtension, IReadOnlyList<string> runnerFlags)
     {
         _runnerName = runnerName;
         _runnerExtension = runnerExtension;
@@ -85,13 +85,13 @@ internal abstract class RunnerBase
         }
         finally
         {
-            logger.LogInformation("Deleting file: {ScriptPath}", runnerFilePath);
+            logger.LogInformation("Deleting file: {RunnerFile}", runnerFilePath);
             File.Delete(runnerFilePath);
         }
     }
 }
 
-internal sealed class BashRunner : RunnerBase
+internal sealed class BashRunner : Runner
 {
     public BashRunner()
         : base("bash", ".sh", Array.Empty<string>())
@@ -99,12 +99,20 @@ internal sealed class BashRunner : RunnerBase
     }
 }
 
-internal sealed class CmdRunner : RunnerBase
+internal sealed class CmdRunner : Runner
 {
     public CmdRunner()
         : base("cmd.exe", ".cmd", new string[]{ "/c" })
     {
     }
+}
+
+internal sealed class PowershellRunner : Runner
+{
+    public PowershellRunner()
+        : base("pwsh", ".ps1", Array.Empty<string>())
+        {
+        }
 }
 
 
@@ -115,13 +123,33 @@ internal sealed class Run : IExecutor
 {
     public async Task<object?> ExecuteAsync(IExecutionContext context)
     {
-        // TODO: Look for a user-defined runner, runnerFlags etc.
-        // Determine the current OS and use the default runner for each.
-        // Linux/MacOS/Others: bash
-        // Windows: cmd.exe
-        RunnerBase runner = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-        ? new CmdRunner()
-        : new BashRunner();
+        Runner? runner = null;
+        object? runnerObj = context.ParameterContext.GetParameterValue("runner");
+        if(runnerObj is null)
+        {
+            // Use default runner based on the operating system.
+            // TODO: Default to PowershellRunner for Windows.
+            runner = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? new CmdRunner()
+                : new BashRunner();
+        }
+        else
+        {
+            // Use specified runner
+            string? runnerStr = runnerObj as string;
+            if(runnerStr is null)
+                throw new Exception($"Failed to convert runner: {runnerObj} to a string");
+
+            // TODO: Check for runnerFlags and runnerExtensions parameters
+            
+            runner = runnerStr switch
+            {
+                "bash" => new BashRunner(),
+                "cmd" or "cmd.exe" => new CmdRunner(),
+                "pwsh" or "pwsh.exe" => new PowershellRunner(),
+                _ => new Runner(runnerStr, ".sh", Array.Empty<string>())
+            };
+        }
 
         return await runner.RunAsync(context);
     }
