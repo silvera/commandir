@@ -192,7 +192,12 @@ internal sealed class CommandExecutor
 
     private Executable GetExecutable(InvocationContext context, CommandWithData command, ParameterContext parameterContext)
     {
-        IExecutor executor = new Run();
+        string? executorName = command.Data.Executor;
+        IExecutor executor = executorName switch
+        {
+            "test" => new Test(),
+            _ => new Run()
+        };
         var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), command.GetPath(), parameterContext);
         return new Executable(executor, executionContext);
     }
