@@ -12,7 +12,7 @@ public class ShellCommandExecutionTests : TestsBase
     {
         return $@"---
             commands:
-               - name: command-tests
+               - name: shell-command-tests
                  parameters:
                     executable: true
                  commands:
@@ -33,7 +33,7 @@ public class ShellCommandExecutionTests : TestsBase
     private static IReadOnlyList<string> GetCommandsPerOS()
     {
         return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-        ? new [] { "cmd" }
+        ? new [] { "cmd", "pwsh" }
         : new [] { "bash" };
     }
 
@@ -50,7 +50,7 @@ public class ShellCommandExecutionTests : TestsBase
     { 
         using TempFile file = new TempFile();
         string yaml = GetCommands(file.FileName);
-        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"command-tests", commandName});
+        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"shell-command-tests", commandName});
         SuccessfulCommandExecution? success = result as SuccessfulCommandExecution;
         Assert.NotNull(success);
         file.AssertContents("Hello World");
