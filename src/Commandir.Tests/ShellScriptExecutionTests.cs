@@ -38,6 +38,12 @@ public class ShellScriptExecutionTests : TestsBase
         using TempFile file = new TempFile();
         string yaml = GetCommands(file.FileName);
         ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"shell-script-tests", commandName});
+        var failure = result as FailedCommandExecution;
+        if(failure is not null)
+        {
+            System.Console.WriteLine($"Error={failure!.Error}");
+        }
+
         SuccessfulCommandExecution? success = result as SuccessfulCommandExecution;
         Assert.NotNull(success);
         file.AssertContents("Hello World");
