@@ -7,25 +7,6 @@ namespace Commandir.Tests;
 
 public class CommandExecutionTests : TestsBase
 {
-    // private string GetCommands()
-    // {
-    //     return $@"---
-    //         commands:
-    //            - name: command-tests
-    //              executor: test
-    //              parameters:
-    //                 greeting: Hello
-    //                 message: {{greeting}} {{name}}
-    //              arguments:
-    //                 - name: name
-    //                   description: The user's name
-    //              options:
-    //                 - name: greeting
-    //                   description: The greeting
-    //                   required: false
-    //     ";
-    // }
-
     private string GetCommands()
     {
         return $@"---

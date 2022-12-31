@@ -6,27 +6,23 @@ using Xunit;
 
 namespace Commandir.Tests;
 
-public class ShellCommandExecutionTests : TestsBase
+public class ShellScriptExecutionTests : TestsBase
 {
     private string GetCommands(string fileName)
     {
         return $@"---
             commands:
-               - name: shell-command-tests
+               - name: shell-script-tests
                  parameters:
                     executable: true
                  commands:
                     - name: bash
                       parameters:
-                         command: echo Hello World > {fileName}
-                    - name: cmd
-                      parameters:
-                         runner: cmd
-                         command: echo Hello World > {fileName}
+                         command: ./hello_world.sh > {fileName}
                     - name: pwsh
                       parameters:
                          runner: pwsh
-                         command: Write-Output 'Hello World' > {fileName}
+                         command: ./hello_world.ps1 > {fileName}
         ";
     }
 
@@ -41,7 +37,7 @@ public class ShellCommandExecutionTests : TestsBase
     { 
         using TempFile file = new TempFile();
         string yaml = GetCommands(file.FileName);
-        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"shell-command-tests", commandName});
+        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"shell-script-tests", commandName});
         SuccessfulCommandExecution? success = result as SuccessfulCommandExecution;
         Assert.NotNull(success);
         file.AssertContents("Hello World");
