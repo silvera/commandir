@@ -29,7 +29,7 @@ public class ShellScriptExecutionTests : TestsBase
     private static IReadOnlyList<string> GetCommandsPerOS()
     {
         return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-        ? new [] { "cmd", "pwsh" }
+        ? new [] { "cmd.exe", "pwsh.exe" }
         : new [] { "bash" };
     }
 
