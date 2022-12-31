@@ -49,7 +49,7 @@ public class ShellScriptExecutionTests : TestsBase
         file.AssertContents("Hello World");
     }
 
-    [Fact]
+    //[Fact]
     public async Task RunCommands()
     { 
         foreach(string commmandName in GetCommandsPerOS())
