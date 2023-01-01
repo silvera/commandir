@@ -55,6 +55,11 @@ public sealed class ArgumentData
     /// The argument description (optional).
     /// </summary>
     public string? Description { get; set; }
+
+    /// <summary>
+    /// The argument type (optional).
+    /// </summary>
+    public string? Type { get; set;}
 }
 
 /// <summary>
@@ -72,6 +77,11 @@ public sealed class OptionData
     /// </summary>
     public string? Description { get; set; }
     
+    /// <summary>
+    /// The option type (optional).
+    /// </summary>
+    public string? Type { get; set;}
+
     /// <summary>
     /// Whether or not the option is required (default is false).
     /// </summary>
