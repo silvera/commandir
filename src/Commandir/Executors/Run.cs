@@ -128,9 +128,8 @@ internal sealed class Run : IExecutor
         if(runnerObj is null)
         {
             // Use default runner based on the operating system.
-            // TODO: Default to PowershellRunner for Windows.
             runner = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new CmdRunner()
+                ? new PowershellRunner()
                 : new BashRunner();
         }
         else
