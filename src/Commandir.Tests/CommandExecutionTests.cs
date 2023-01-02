@@ -31,10 +31,9 @@ public class CommandExecutionTests : TestsBase
     public async Task ArgumentOverridesParameter()
     { 
         string yaml = GetCommands();
-        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"execution-tests", "World"});
-        SuccessfulCommandExecution? success = result as SuccessfulCommandExecution;
-        Assert.NotNull(success);
-        string? commandResult = success!.Results.First() as string;
+        CommandExecutionResult? result = await RunCommandAsync(yaml, new [] {"execution-tests", "World"});
+        Assert.NotNull(result);
+        string? commandResult = result!.Results.First() as string;
         Assert.Equal("Hello World", commandResult);
     }
 
@@ -42,10 +41,9 @@ public class CommandExecutionTests : TestsBase
     public async Task OptionOverridesArgument()
     {
         string yaml = GetCommands();
-        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"execution-tests", "World", "--name", "Universe"});
-        SuccessfulCommandExecution? success = result as SuccessfulCommandExecution;
-        Assert.NotNull(success);
-        string? commandResult = success!.Results.First() as string;
+        CommandExecutionResult? result = await RunCommandAsync(yaml, new [] {"execution-tests", "World", "--name", "Universe"});
+        Assert.NotNull(result);
+        string? commandResult = result!.Results.First() as string;
         Assert.Equal("Hello Universe", commandResult);
     }
 }

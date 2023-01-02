@@ -6,39 +6,30 @@ using System.CommandLine.Parsing;
 
 namespace Commandir.Commands;
 
-/// <summary>
-/// Marker interface for command execution result types.
-/// </summary>
-public interface ICommandExecutionResult
+public class CommandValidationException : Exception
 {
-}
-
-/// <summary>
-/// Represents a failed command execution.
-/// </summary>
-internal sealed class FailedCommandExecution : ICommandExecutionResult
-{   
-    /// <summary>
-    /// The reason for the command execution failure. 
-    /// </summary>
-    public string Error { get; }
-    public FailedCommandExecution(string error)
+    public CommandValidationException(string message)
+        : base(message)
     {
-        Error = error;
     }
 }
 
-/// <summary>
-/// Represents a successful command execution.
-/// </summary>
-internal sealed class SuccessfulCommandExecution : ICommandExecutionResult
+// public sealed class FatalCommandExecutionException : CommandExecutionException
+// {
+//     public FatalCommandExecutionException(string message)
+//         : base(message)
+//     {
+//     }
+// }
+
+public sealed class CommandExecutionResult
 {
     /// <summary>
     /// The results of the execution of a command.
     /// May contain the results of multiple subcommands. 
     /// </summary>
     public IEnumerable<object?> Results { get; }
-    public SuccessfulCommandExecution(IEnumerable<object?> results)
+    public CommandExecutionResult(IEnumerable<object?> results)
     {
         Results = results;
     }
@@ -58,17 +49,15 @@ internal sealed class CommandExecutor
         _logger = loggerFactory.CreateLogger<CommandExecutor>();
     }
 
-    public async Task<ICommandExecutionResult> ExecuteAsync(InvocationContext invocationContext)
+    public async Task<CommandExecutionResult> ExecuteAsync(InvocationContext invocationContext)
     {
-        try
-        {
+        // try
+        // {
             // Manually surface any parse errors that should prevent command execution.
             // This is required because we're using Middlware to bypass the standard command execution pipeline.
             // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
-            ICommandExecutionResult? validationResult = ValidateParseResult(invocationContext);
-            if(validationResult != null)
-                return validationResult;
-
+            ValidateCommandInvocation(invocationContext);
+            
             CommandWithData? command = invocationContext.ParseResult.CommandResult.Command as CommandWithData;
             if(command == null)
                 throw new Exception($"Failed to convert command to CommandWithData");
@@ -112,15 +101,15 @@ internal sealed class CommandExecutor
                 }
             }
 
-            return new SuccessfulCommandExecution(commandResults);
-        }
-        catch(Exception e)
-        {
-            return new FailedCommandExecution(e.Message);
-        }
+            return new CommandExecutionResult(commandResults);
+        // }
+        // catch(Exception)
+        // {
+        //     throw;
+        // }
     }
 
-    private static ICommandExecutionResult? ValidateParseResult(InvocationContext invocationContext)
+    private static void ValidateCommandInvocation(InvocationContext invocationContext)
     {
         IReadOnlyList<ParseError> parseErrors = invocationContext.ParseResult.Errors; 
         
@@ -130,7 +119,7 @@ internal sealed class CommandExecutor
             if(parseErrors.Count > 1)
             {
                 // There is more than one parse error; return the last error.
-                return new FailedCommandExecution(parseErrors.Last().Message);
+                throw new CommandValidationException(parseErrors.Last().Message);
             }
             else
             {
@@ -138,15 +127,13 @@ internal sealed class CommandExecutor
              
                 // If no commands were supplied, return the error.
                 if(invocationContext.ParseResult.Tokens.Count == 0)
-                    return new FailedCommandExecution(error.Message);
+                    throw new CommandValidationException(error.Message);
              
                 // Ensure the one parse error is the expected error.
                 if(error.Message != "Required command was not provided.")
-                    return new FailedCommandExecution(error.Message);
+                    throw new CommandValidationException(error.Message);
             }
         }
-
-        return null;
     }
 
     // Encapsulates an executor with its execution context (a closure).

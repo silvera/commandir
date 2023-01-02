@@ -42,13 +42,13 @@ namespace Commandir
                     try
                     {
                         // Set the Commandir logging level. 
-                        SetLogLevel(context, rootCommand, commandirLevelSwitch);
+                        SetCommandirLogLevel(context, rootCommand, commandirLevelSwitch);
 
-                        var result = await new CommandExecutor(loggerFactory).ExecuteAsync(context);
-                        if(result is FailedCommandExecution)
-                        {
-                            await next(context);
-                        }
+                        await new CommandExecutor(loggerFactory).ExecuteAsync(context);
+                    }
+                    catch(CommandValidationException)
+                    {
+                        await next(context);
                     }
                     catch(Exception e)
                     {
@@ -68,7 +68,7 @@ namespace Commandir
             }
         }
 
-        private static void SetLogLevel(InvocationContext invocationContext, CommandWithData command, LoggingLevelSwitch logLevelSwitch)
+        private static void SetCommandirLogLevel(InvocationContext invocationContext, CommandWithData command, LoggingLevelSwitch logLevelSwitch)
         {
             Option? verboseOption = command.Options.FirstOrDefault(o => o.Name == "verbose");
             if(verboseOption is null)

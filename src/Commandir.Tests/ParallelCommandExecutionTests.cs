@@ -35,7 +35,7 @@ public class ParallelCommandExecutionTests : TestsBase
     public async Task ParallelTest(bool parallel)
     {
         string yaml = GetCommands(parallel: parallel);
-        Task<ICommandExecutionResult> commandTask = RunCommandAsync(yaml, new [] {"parallel-tests"});
+        Task<CommandExecutionResult?> commandTask = RunCommandAsync(yaml, new [] {"parallel-tests"});
         Task delayTask = Task.Delay(System.TimeSpan.FromSeconds(15));
         var resultTask = await Task.WhenAny(commandTask, delayTask);
         if(parallel)
@@ -45,11 +45,13 @@ public class ParallelCommandExecutionTests : TestsBase
             // Result: commandTask
             Assert.Equal(commandTask, resultTask);
             
-            SuccessfulCommandExecution? commandResult = await commandTask as SuccessfulCommandExecution;
+            CommandExecutionResult? commandResult = await commandTask;
             Assert.NotNull(commandResult);
+            
             string? command1Result = commandResult!.Results.First() as string;
             Assert.NotNull(command1Result);
             Assert.Equal("Compiled", command1Result);
+            
             string? command2Result = commandResult!.Results.Last() as string;
             Assert.NotNull(command2Result);
             Assert.Equal("Tested", command2Result);

@@ -1,6 +1,5 @@
 using Commandir.Commands;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
@@ -34,26 +33,23 @@ internal sealed class TempFile : IDisposable
 
 public abstract class TestsBase
 {
-    protected async Task<ICommandExecutionResult> RunCommandAsync(string yaml, string[] commandLineArgs)
+    protected async Task<CommandExecutionResult?> RunCommandAsync(string yaml, string[] commandLineArgs)
     {
         var rootCommand = new YamlCommandBuilder(yaml).Build();
 
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         var commandExecutor = new CommandExecutor(loggerFactory);
 
-        ICommandExecutionResult? result = null;
+        CommandExecutionResult? result = null;
         var parser = new CommandLineBuilder(rootCommand)
                 .AddMiddleware(async (context, next) =>
                 {
+                    // Do not catch exceptions as we validate they are thrown.
                     result = await commandExecutor.ExecuteAsync(context);
-                    if(result is FailedCommandExecution failure)
-                    {
-                        await next(context);
-                    }
                 })
                 .Build();
 
         await parser.InvokeAsync(commandLineArgs);
-        return result!;
+        return result;
     }
 }

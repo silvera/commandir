@@ -20,7 +20,6 @@ internal class Runner
     public async Task<int> RunAsync(IExecutionContext executionContext)
     {
         ILogger logger = executionContext.LoggerFactory.CreateLogger<Run>();
-        //logger.LogInformation("Executing command: {CommandPath}", executionContext.Path);
 
         object? commandObj = executionContext.ParameterContext.GetParameterValue("command");
         if(commandObj is null)
@@ -42,7 +41,7 @@ internal class Runner
         string runnerFilePath = Path.Combine(Directory.GetCurrentDirectory(), runnerFileName);
         
         // Write the contents of the command to the file.
-        logger.LogInformation("Creating file: {RunnerFile} with contents: {RunnerFileContents}", runnerFileName, formattedCommand);
+        logger.LogDebug("Creating file: {RunnerFile} with contents: {RunnerFileContents}", runnerFileName, formattedCommand);
         
         using (var writer = new StreamWriter(runnerFilePath))
         {
@@ -68,14 +67,14 @@ internal class Runner
             processStartInfo.ArgumentList.Add(runnerFilePath);
 
             string commandLine = $"{_runnerName} {string.Join(" ", processStartInfo.ArgumentList)}";
-            logger.LogInformation("Process Starting: {CommandLine}", commandLine);
+            logger.LogDebug("Process Starting: {CommandLine}", commandLine);
             var process = Process.Start(processStartInfo);
             if(process == null)
                 throw new Exception($"Failed to create process `{commandLine}`");
     
             await process.WaitForExitAsync(executionContext.CancellationToken);
             int exitCode = process.ExitCode;
-            logger.LogInformation("Process Complete. ExitCode: {ExitCode}", exitCode);
+            logger.LogDebug("Process Complete. ExitCode: {ExitCode}", exitCode);
             return process.ExitCode;
         }
         catch(Exception e)
@@ -85,7 +84,7 @@ internal class Runner
         }
         finally
         {
-            logger.LogInformation("Deleting file: {RunnerFile}", runnerFilePath);
+            logger.LogDebug("Deleting file: {RunnerFile}", runnerFilePath);
             File.Delete(runnerFilePath);
         }
     }

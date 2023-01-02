@@ -41,9 +41,7 @@ public class ShellCommandExecutionTests : TestsBase
     { 
         using TempFile file = new TempFile();
         string yaml = GetCommands(file.FileName);
-        ICommandExecutionResult result = await RunCommandAsync(yaml, new [] {"shell-command-tests", commandName});
-        SuccessfulCommandExecution? success = result as SuccessfulCommandExecution;
-        Assert.NotNull(success);
+        await RunCommandAsync(yaml, new [] {"shell-command-tests", commandName});
         file.AssertContents("Hello World");
     }
 

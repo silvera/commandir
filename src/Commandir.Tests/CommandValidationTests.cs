@@ -27,10 +27,12 @@ public class CommandValidationTests : TestsBase
     {
         using var file1 = new TempFile(); 
         string yaml = GetCommands(file1.FileName);
-        var result = await RunCommandAsync(yaml, new [] {"validation-tsts"});
-        var failure = result as FailedCommandExecution;
-        Assert.NotNull(failure);
-        Assert.Equal("Unrecognized command or argument 'validation-tsts'.", failure!.Error);
+
+        CommandValidationException exception = await Assert.ThrowsAsync<CommandValidationException>(() =>
+        {
+            return RunCommandAsync(yaml, new [] {"validation-tsts"});
+        });
+        Assert.Equal("Unrecognized command or argument 'validation-tsts'.", exception.Message);
     }
 
     [Fact]
@@ -38,10 +40,12 @@ public class CommandValidationTests : TestsBase
     {
         using var file1 = new TempFile();
         string yaml = GetCommands(file1.FileName);
-        var result = await RunCommandAsync(yaml, new [] {"validation-tests", "build", "foo"});
-        var failure = result as FailedCommandExecution;
-        Assert.NotNull(failure);
-        Assert.Equal("Unrecognized command or argument 'foo'.", failure!.Error);
+        
+        CommandValidationException exception = await Assert.ThrowsAsync<CommandValidationException>(() =>
+        {
+            return RunCommandAsync(yaml, new [] {"validation-tests", "build", "foo"});
+        });
+        Assert.Equal("Unrecognized command or argument 'foo'.", exception.Message);
     }
 
     [Fact]
@@ -49,9 +53,11 @@ public class CommandValidationTests : TestsBase
     {
         using var file1 = new TempFile(); 
         string yaml = GetCommands(file1.FileName);
-        var result = await RunCommandAsync(yaml, new [] {"validation-tests", "bld"});
-        var failure = result as FailedCommandExecution;
-        Assert.NotNull(failure);
-        Assert.Equal("Unrecognized command or argument 'bld'.", failure!.Error);
+        
+        CommandValidationException exception = await Assert.ThrowsAsync<CommandValidationException>(() =>
+        {
+            return RunCommandAsync(yaml, new [] {"validation-tests", "bld"});
+        });
+        Assert.Equal("Unrecognized command or argument 'bld'.", exception.Message);
     }
 }
