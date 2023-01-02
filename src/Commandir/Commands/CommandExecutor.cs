@@ -50,10 +50,12 @@ internal sealed class SuccessfulCommandExecution : ICommandExecutionResult
 internal sealed class CommandExecutor
 {
     private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger _logger;
     
     public CommandExecutor(ILoggerFactory loggerFactory)
     {
         _loggerFactory = loggerFactory;
+        _logger = loggerFactory.CreateLogger<CommandExecutor>();
     }
 
     public async Task<ICommandExecutionResult> ExecuteAsync(InvocationContext invocationContext)
@@ -71,6 +73,8 @@ internal sealed class CommandExecutor
             if(command == null)
                 throw new Exception($"Failed to convert command to CommandWithData");
             
+            _logger.LogDebug("Invoking command: {CommandPath}", command.GetPath());
+
             // Decide if child commands should be executed serially (the default) or in parallel.
             // This applies for all child commands - there is no way to have some children execution serially and others in parallel (yet).
             var parameterContext = new ParameterContext(invocationContext, command);
@@ -150,14 +154,17 @@ internal sealed class CommandExecutor
     {
         private readonly IExecutor _executor;
         private readonly IExecutionContext _executionContext;
-        public Executable(IExecutor executor, IExecutionContext executionContext)
+        private readonly ILogger _logger;
+        public Executable(IExecutor executor, IExecutionContext executionContext, ILogger logger)
         {
             _executor = executor;
             _executionContext = executionContext;
+            _logger = logger;
         }
 
         public Task<object?> ExecuteAsync()
         {
+            _logger.LogDebug("Executing command: {CommandPath}", _executionContext.Path);
             return _executor.ExecuteAsync(_executionContext);
         }
     }    
@@ -199,6 +206,6 @@ internal sealed class CommandExecutor
             _ => new Run()
         };
         var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), command.GetPath(), parameterContext);
-        return new Executable(executor, executionContext);
+        return new Executable(executor, executionContext, _logger);
     }
 }

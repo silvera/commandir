@@ -1,9 +1,12 @@
 ﻿using Commandir.Commands;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
+using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 
 namespace Commandir
@@ -12,17 +15,13 @@ namespace Commandir
     { 
         public static async Task Main(string[] args)
         {
-            Serilog.Events.LogEventLevel commandirLogLevel = Serilog.Events.LogEventLevel.Information;
-            if(args.Length > 0)
-            {
-                if(string.Equals(args[0], "--verbose", StringComparison.OrdinalIgnoreCase))
-                    commandirLogLevel = Serilog.Events.LogEventLevel.Information;
-            }
+            // Used to control the Commandir logging level based on command-line arguments e.g. --verbose.
+            LoggingLevelSwitch commandirLevelSwitch = new LoggingLevelSwitch(Serilog.Events.LogEventLevel.Warning);
 
             Serilog.Core.Logger seriLogger = new LoggerConfiguration()
-                .MinimumLevel.Override("Commandir", commandirLogLevel)
-                .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Error)
-                .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Error)
+                .MinimumLevel.ControlledBy(commandirLevelSwitch)
+                .MinimumLevel.Override("System", LogEventLevel.Error)
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Error)
                 .WriteTo.Console(outputTemplate: "{SourceContext}: {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
 
@@ -35,16 +34,17 @@ namespace Commandir
                 string yaml = File.ReadAllText(yamlFile);
                 
                 YamlCommandBuilder commandBuilder = new YamlCommandBuilder(yaml);
-                
-                CommandExecutor commandExecutor = new CommandExecutor(loggerFactory);
                 CommandWithData rootCommand = commandBuilder.Build();
-                
+
                 await new CommandLineBuilder(rootCommand)
                 .AddMiddleware(async (context, next) =>
                 {
                     try
                     {
-                        var result = await commandExecutor.ExecuteAsync(context);
+                        // Set the Commandir logging level. 
+                        SetLogLevel(context, rootCommand, commandirLevelSwitch);
+
+                        var result = await new CommandExecutor(loggerFactory).ExecuteAsync(context);
                         if(result is FailedCommandExecution)
                         {
                             await next(context);
@@ -65,6 +65,23 @@ namespace Commandir
             catch(Exception e)
             {
                 logger.LogCritical("{ExceptionType}: {Message}", e.GetType().Name,  e.Message);
+            }
+        }
+
+        private static void SetLogLevel(InvocationContext invocationContext, CommandWithData command, LoggingLevelSwitch logLevelSwitch)
+        {
+            Option? verboseOption = command.Options.FirstOrDefault(o => o.Name == "verbose");
+            if(verboseOption is null)
+                throw new Exception("Failed to find `verbose` option");
+
+            object? verboseLoggingObj = invocationContext.ParseResult.GetValueForOption(verboseOption);
+            if(verboseLoggingObj is not null)
+            {
+                bool verboseLogging = Convert.ToBoolean(verboseLoggingObj); 
+                if(verboseLogging)
+                {
+                    logLevelSwitch.MinimumLevel = LogEventLevel.Verbose;
+                }
             }
         }
     }

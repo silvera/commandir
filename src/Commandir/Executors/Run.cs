@@ -20,7 +20,7 @@ internal class Runner
     public async Task<int> RunAsync(IExecutionContext executionContext)
     {
         ILogger logger = executionContext.LoggerFactory.CreateLogger<Run>();
-        logger.LogInformation("Executing command: {CommandPath}", executionContext.Path);
+        //logger.LogInformation("Executing command: {CommandPath}", executionContext.Path);
 
         object? commandObj = executionContext.ParameterContext.GetParameterValue("command");
         if(commandObj is null)
