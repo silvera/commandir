@@ -1,6 +1,6 @@
 using Commandir.Interfaces;
 using Commandir.Executors;
-using Microsoft.Extensions.Logging;
+using Serilog;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 
@@ -13,14 +13,6 @@ public class CommandValidationException : Exception
     {
     }
 }
-
-// public sealed class FatalCommandExecutionException : CommandExecutionException
-// {
-//     public FatalCommandExecutionException(string message)
-//         : base(message)
-//     {
-//     }
-// }
 
 public sealed class CommandExecutionResult
 {
@@ -40,73 +32,65 @@ public sealed class CommandExecutionResult
 /// </summary>
 internal sealed class CommandExecutor
 {
-    private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     
-    public CommandExecutor(ILoggerFactory loggerFactory)
+    public CommandExecutor(ILogger logger)
     {
-        _loggerFactory = loggerFactory;
-        _logger = loggerFactory.CreateLogger<CommandExecutor>();
+        _logger = logger.ForContext<CommandExecutor>();
     }
 
     public async Task<CommandExecutionResult> ExecuteAsync(InvocationContext invocationContext)
     {
-        // try
-        // {
-            // Manually surface any parse errors that should prevent command execution.
-            // This is required because we're using Middlware to bypass the standard command execution pipeline.
-            // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
-            ValidateCommandInvocation(invocationContext);
+    
+        // Manually surface any parse errors that should prevent command execution.
+        // This is required because we're using Middlware to bypass the standard command execution pipeline.
+        // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
+        ValidateCommandInvocation(invocationContext);
+        
+        CommandWithData? command = invocationContext.ParseResult.CommandResult.Command as CommandWithData;
+        if(command == null)
+            throw new Exception($"Failed to convert command to CommandWithData");
+        
+        _logger.Debug("Invoking command: {CommandPath}", command.GetPath());
+
+        // Decide if child commands should be executed serially (the default) or in parallel.
+        // This applies for all child commands - there is no way to have some children execution serially and others in parallel (yet).
+        var parameterContext = new ParameterContext(invocationContext, command);
+        
+        bool parallel = false;
+        object? parallelObj = parameterContext.GetParameterValue("parallel");
+        if(parallelObj is not null)
+        {
+            parallel = Convert.ToBoolean(parallelObj);
+        }
+
+        List<Executable> executables = new();
+        GetExecutables(invocationContext, command, executables);
+
+        List<object?> commandResults = new();
+        if(parallel)
+        {
+            // Execute tasks in parallel and wait for them to finish.
+            Task<object?>[] executableTasks = executables
+                .Select(e => e.ExecuteAsync())
+                .ToArray();
             
-            CommandWithData? command = invocationContext.ParseResult.CommandResult.Command as CommandWithData;
-            if(command == null)
-                throw new Exception($"Failed to convert command to CommandWithData");
-            
-            _logger.LogDebug("Invoking command: {CommandPath}", command.GetPath());
-
-            // Decide if child commands should be executed serially (the default) or in parallel.
-            // This applies for all child commands - there is no way to have some children execution serially and others in parallel (yet).
-            var parameterContext = new ParameterContext(invocationContext, command);
-            
-            bool parallel = false;
-            object? parallelObj = parameterContext.GetParameterValue("parallel");
-            if(parallelObj is not null)
+            await Task.WhenAll(executableTasks);
+            foreach(var executableTask in executableTasks)
             {
-                parallel = Convert.ToBoolean(parallelObj);
+                commandResults.Add(await executableTask);
             }
-
-            List<Executable> executables = new();
-            GetExecutables(invocationContext, command, executables);
-
-            List<object?> commandResults = new();
-            if(parallel)
+        }
+        else
+        {
+            // Execute tasks serially.
+            foreach(var executable in executables)
             {
-                // Execute tasks in parallel and wait for them to finish.
-                Task<object?>[] executableTasks = executables
-                    .Select(e => e.ExecuteAsync())
-                    .ToArray();
-                
-                await Task.WhenAll(executableTasks);
-                foreach(var executableTask in executableTasks)
-                {
-                    commandResults.Add(await executableTask);
-                }
+                commandResults.Add(await executable.ExecuteAsync());
             }
-            else
-            {
-                // Execute tasks serially.
-                foreach(var executable in executables)
-                {
-                    commandResults.Add(await executable.ExecuteAsync());
-                }
-            }
+        }
 
-            return new CommandExecutionResult(commandResults);
-        // }
-        // catch(Exception)
-        // {
-        //     throw;
-        // }
+        return new CommandExecutionResult(commandResults);
     }
 
     private static void ValidateCommandInvocation(InvocationContext invocationContext)
@@ -151,7 +135,7 @@ internal sealed class CommandExecutor
 
         public Task<object?> ExecuteAsync()
         {
-            _logger.LogDebug("Executing command: {CommandPath}", _executionContext.Path);
+            _logger.Debug("Executing command: {CommandPath}", _executionContext.Path);
             return _executor.ExecuteAsync(_executionContext);
         }
     }    
@@ -192,7 +176,7 @@ internal sealed class CommandExecutor
             "test" => new Test(),
             _ => new Run()
         };
-        var executionContext = new Commandir.Interfaces.ExecutionContext(_loggerFactory, context.GetCancellationToken(), command.GetPath(), parameterContext);
+        var executionContext = new Commandir.Interfaces.ExecutionContext(_logger, context.GetCancellationToken(), command.GetPath(), parameterContext);
         return new Executable(executor, executionContext, _logger);
     }
 }

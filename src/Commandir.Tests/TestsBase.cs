@@ -1,5 +1,4 @@
 using Commandir.Commands;
-using Microsoft.Extensions.Logging;
 using System;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
@@ -37,8 +36,8 @@ public abstract class TestsBase
     {
         var rootCommand = new YamlCommandBuilder(yaml).Build();
 
-        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-        var commandExecutor = new CommandExecutor(loggerFactory);
+        CommandirLogger logger = new CommandirLogger();
+        var commandExecutor = new CommandExecutor(logger.Logger);
 
         CommandExecutionResult? result = null;
         var parser = new CommandLineBuilder(rootCommand)

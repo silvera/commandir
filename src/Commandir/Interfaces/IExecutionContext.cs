@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Commandir.Interfaces;
 
@@ -8,9 +8,9 @@ namespace Commandir.Interfaces;
 public interface IExecutionContext
 {
     /// <summary>
-    /// The LoggerFactory to construct a logger instance.
+    /// The Logger to construct a logger instance.
     /// </summary>
-    ILoggerFactory LoggerFactory { get; }
+    ILogger Logger  { get; }
 
     /// <summary>
     /// A CancellationToken to cancel the executor's execution. 
@@ -34,7 +34,7 @@ public interface IExecutionContext
 
 internal sealed class ExecutionContext : IExecutionContext
 {
-    public ILoggerFactory LoggerFactory { get; }
+    public ILogger Logger { get; }
 
     public CancellationToken CancellationToken { get; }
 
@@ -42,9 +42,9 @@ internal sealed class ExecutionContext : IExecutionContext
 
     public IParameterContext ParameterContext { get; } 
 
-    public ExecutionContext(ILoggerFactory loggerFactory, CancellationToken cancellationToken, string path, IParameterContext parameterContext)
+    public ExecutionContext(ILogger logger, CancellationToken cancellationToken, string path, IParameterContext parameterContext)
     {
-        LoggerFactory = loggerFactory;
+        Logger = logger;
         CancellationToken = cancellationToken;
         Path = path;
         ParameterContext = parameterContext;

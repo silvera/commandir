@@ -1,5 +1,4 @@
 ﻿using Commandir.Commands;
-using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -15,18 +14,8 @@ namespace Commandir
     { 
         public static async Task Main(string[] args)
         {
-            // Used to control the Commandir logging level based on command-line arguments e.g. --verbose.
-            LoggingLevelSwitch commandirLevelSwitch = new LoggingLevelSwitch(Serilog.Events.LogEventLevel.Warning);
-
-            Serilog.Core.Logger seriLogger = new LoggerConfiguration()
-                .MinimumLevel.ControlledBy(commandirLevelSwitch)
-                .MinimumLevel.Override("System", LogEventLevel.Error)
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Error)
-                .WriteTo.Console(outputTemplate: "{SourceContext}: {Message:lj}{NewLine}{Exception}")
-                .CreateLogger();
-
-            ILoggerFactory loggerFactory = new LoggerFactory().AddSerilog(seriLogger);
-            Microsoft.Extensions.Logging.ILogger logger = loggerFactory.CreateLogger<Program>();
+            var exceptionLogger = new ExceptionLogger();
+            var commandirLogger = new CommandirLogger();
 
             try
             {
@@ -41,22 +30,23 @@ namespace Commandir
                 {
                     try
                     {
-                        // Set the Commandir logging level. 
-                        SetCommandirLogLevel(context, rootCommand, commandirLevelSwitch);
-
-                        await new CommandExecutor(loggerFactory).ExecuteAsync(context);
+                        // Set the log level before invoking the command.
+                        commandirLogger.SetLogLevel(context, rootCommand);
+                        
+                        await new CommandExecutor(commandirLogger.Logger).ExecuteAsync(context);
                     }
                     catch(CommandValidationException)
                     {
+                        // Triggers the default 'invalid' command processing logic.
                         await next(context);
                     }
                     catch(Exception e)
                     {
-                        logger.LogCritical("{ExceptionType}: {Message}", e.GetType().Name,  e.Message);
+                        exceptionLogger.LogException(e);
                     }
                 })
                 .UseHost(host => {
-                    host.UseSerilog(seriLogger);
+                    host.UseSerilog(commandirLogger.Logger);
                 })
                 .UseDefaults()
                 .Build()
@@ -64,11 +54,50 @@ namespace Commandir
             }
             catch(Exception e)
             {
-                logger.LogCritical("{ExceptionType}: {Message}", e.GetType().Name,  e.Message);
+                exceptionLogger.LogException(e);
             }
         }
+    }
 
-        private static void SetCommandirLogLevel(InvocationContext invocationContext, CommandWithData command, LoggingLevelSwitch logLevelSwitch)
+    internal sealed class ExceptionLogger
+    {
+        private readonly Serilog.Core.Logger _logger;
+        public ExceptionLogger()
+        {
+            _logger = new LoggerConfiguration()
+                .MinimumLevel.Override("System", LogEventLevel.Error)
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Error)
+                .WriteTo.Console(outputTemplate: "Commandir: {Message:lj}{NewLine}{Exception}")
+                .CreateLogger();
+        }
+
+        public void LogException(Exception e)
+        {
+            _logger.Fatal("{ExceptionType}: {Message}", e.GetType().Name,  e.Message);
+        }
+    }
+
+    internal sealed class CommandirLogger
+    {
+        private readonly Serilog.Core.Logger _logger;
+        private readonly  LoggingLevelSwitch _logLevel;
+
+        public Serilog.ILogger Logger => _logger;
+
+        public CommandirLogger()
+        {
+            // Used to control the Commandir logging level based on command-line arguments e.g. --verbose.
+            _logLevel = new LoggingLevelSwitch(Serilog.Events.LogEventLevel.Warning);
+
+            _logger = new LoggerConfiguration()
+                .MinimumLevel.ControlledBy(_logLevel)
+                .MinimumLevel.Override("System", LogEventLevel.Error)
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Error)
+                .WriteTo.Console(outputTemplate: "{SourceContext}: {Message:lj}{NewLine}{Exception}")
+                .CreateLogger();
+        }
+
+        public void SetLogLevel(InvocationContext invocationContext, CommandWithData command)
         {
             Option? verboseOption = command.Options.FirstOrDefault(o => o.Name == "verbose");
             if(verboseOption is null)
@@ -80,7 +109,7 @@ namespace Commandir
                 bool verboseLogging = Convert.ToBoolean(verboseLoggingObj); 
                 if(verboseLogging)
                 {
-                    logLevelSwitch.MinimumLevel = LogEventLevel.Verbose;
+                    _logLevel.MinimumLevel = LogEventLevel.Verbose;
                 }
             }
         }

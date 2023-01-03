@@ -1,5 +1,5 @@
 using Commandir.Interfaces;
-using Microsoft.Extensions.Logging;
+using Serilog;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -19,7 +19,7 @@ internal class Runner
 
     public async Task<int> RunAsync(IExecutionContext executionContext)
     {
-        ILogger logger = executionContext.LoggerFactory.CreateLogger<Run>();
+        ILogger logger = executionContext.Logger;
 
         object? commandObj = executionContext.ParameterContext.GetParameterValue("command");
         if(commandObj is null)
@@ -41,7 +41,7 @@ internal class Runner
         string runnerFilePath = Path.Combine(Directory.GetCurrentDirectory(), runnerFileName);
         
         // Write the contents of the command to the file.
-        logger.LogDebug("Creating file: {RunnerFile} with contents: {RunnerFileContents}", runnerFileName, formattedCommand);
+        logger.Debug("Creating file: {RunnerFile} with contents: {RunnerFileContents}", runnerFileName, formattedCommand);
         
         using (var writer = new StreamWriter(runnerFilePath))
         {
@@ -67,24 +67,24 @@ internal class Runner
             processStartInfo.ArgumentList.Add(runnerFilePath);
 
             string commandLine = $"{_runnerName} {string.Join(" ", processStartInfo.ArgumentList)}";
-            logger.LogDebug("Process Starting: {CommandLine}", commandLine);
+            logger.Debug("Process Starting: {CommandLine}", commandLine);
             var process = Process.Start(processStartInfo);
             if(process == null)
                 throw new Exception($"Failed to create process `{commandLine}`");
     
             await process.WaitForExitAsync(executionContext.CancellationToken);
             int exitCode = process.ExitCode;
-            logger.LogDebug("Process Complete. ExitCode: {ExitCode}", exitCode);
+            logger.Debug("Process Complete. ExitCode: {ExitCode}", exitCode);
             return process.ExitCode;
         }
         catch(Exception e)
         {
-            logger.LogError(e, "Exeception while exeucting command: {Command}", command);
+            logger.Error(e, "Exeception while exeucting command: {Command}", command);
             return -1;
         }
         finally
         {
-            logger.LogDebug("Deleting file: {RunnerFile}", runnerFilePath);
+            logger.Debug("Deleting file: {RunnerFile}", runnerFilePath);
             File.Delete(runnerFilePath);
         }
     }
