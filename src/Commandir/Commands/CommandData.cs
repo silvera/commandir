@@ -73,6 +73,11 @@ public sealed class OptionData
     public string? Name { get; set; }
 
     /// <summary>
+    /// The option short name (alias), e.g. -v for --verbose
+    /// </summary>
+    public string? ShortName { get; set; }
+
+    /// <summary>
     /// The option description (optional).
     /// </summary>
     public string? Description { get; set; }

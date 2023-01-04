@@ -95,6 +95,12 @@ public sealed class YamlCommandBuilder
             "string" => new Option<string>(name, description) { IsRequired = data.Required },
             _ => new Option<string>(name, description) { IsRequired = data.Required }
         };
+
+        if(data.ShortName is not null)
+        {
+            option.AddAlias($"-{data.ShortName}");
+        }
+
         command.AddOption(option);
     }
 }

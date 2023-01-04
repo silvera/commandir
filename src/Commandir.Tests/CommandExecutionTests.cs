@@ -22,6 +22,7 @@ public class CommandExecutionTests : TestsBase
                       description: The user's name.
                  options:
                     -  name: name
+                       shortName: n
                        description: An override for the user's name.
                        required: false
         ";
@@ -37,11 +38,21 @@ public class CommandExecutionTests : TestsBase
         Assert.Equal("Hello World", commandResult);
     }
 
-     [Fact]
+    [Fact]
     public async Task OptionOverridesArgument()
     {
         string yaml = GetCommands();
         CommandExecutionResult? result = await RunCommandAsync(yaml, new [] {"execution-tests", "World", "--name", "Universe"});
+        Assert.NotNull(result);
+        string? commandResult = result!.Results.First() as string;
+        Assert.Equal("Hello Universe", commandResult);
+    }
+
+    [Fact]
+    public async Task OptionShortNameOverridesArgument()
+    {
+        string yaml = GetCommands();
+        CommandExecutionResult? result = await RunCommandAsync(yaml, new [] {"execution-tests", "World", "-n", "Universe"});
         Assert.NotNull(result);
         string? commandResult = result!.Results.First() as string;
         Assert.Equal("Hello Universe", commandResult);
