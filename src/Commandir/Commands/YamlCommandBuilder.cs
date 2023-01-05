@@ -32,6 +32,7 @@ public sealed class YamlCommandBuilder
         rootCommandData.Options.Add(new OptionData
         {
             Name = "verbose",
+            ShortName = "v",
             Description = "Enables verbose logging.",
             Type = "bool"
         });
