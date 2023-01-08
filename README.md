@@ -15,7 +15,37 @@ commands:
         run: echo "Hello World!"
 ```
 
-Running Commandir from a directory containing this Commandir.yaml file, without any command-line arguments, displays the help information:
+Running Commandir with the `hello` command results in the following output:
+
+```
+user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir hello
+Hello World!
+```
+
+This runs `echo "Hello World!"` using the default shell. The default shell on Linux/MacOS is `bash` and  `pwsh` (Powershell) on Windows". The `cmd` (DOS) shell is also supported on Windows. The shell can be changed by specifying the `shell` parameter. The following example runs the `hello` command using the `sh` shell on Linux:
+
+```
+---
+commands:
+   - name: hello
+     parameters:
+        shell: sh
+        run: echo "Hello World!"
+```
+
+By default, Commandir does not log any activity so as not to contaminate STDOUT. We can enable verbose logging via the --verbose (-v) flag, which shows the `sh` shell is used:
+```
+user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir -v hello
+Commandir.Commands.CommandExecutor: Invoking command: /Commandir/hello
+Commandir.Commands.CommandExecutor: Executing command: /Commandir/hello
+Commandir.Commands.CommandExecutor: Creating file: /home/user/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/Commandir_hello.sh with contents: echo "Hello World!"
+Commandir.Commands.CommandExecutor: Process Starting: sh /home/user/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/Commandir_hello.sh
+Hello World!
+Commandir.Commands.CommandExecutor: Process Complete. ExitCode: 0
+Commandir.Commands.CommandExecutor: Deleting file: /home/user/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/Commandir_hello.sh
+```
+
+Running Commandir from a directory containing a Commandir.yaml file, without any command-line arguments, displays the help information:
 
 ```
 user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir 
@@ -34,24 +64,6 @@ Options:
 Commands:
   hello
 ```
-
-Running Commandir with the `hello` command results in the following output:
-```
-user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir hello
-Hello World!
-```
-By default, Commandir prints no information about itself to the console. This can be changed by passing the --verbose (-v) option before invoking a command. For example:
-
-```
-user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir -v hello
-Commandir.Commands.CommandExecutor: Invoking command: /Commandir/hello
-Commandir.Commands.CommandExecutor: Executing command: /Commandir/hello
-Commandir.Commands.CommandExecutor: Creating file: /home/arisilver/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/Commandir_hello.sh with contents: echo "Hello World!"
-Commandir.Commands.CommandExecutor: Process Starting: bash /home/arisilver/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/Commandir_hello.sh
-Hello World!
-Commandir.Commands.CommandExecutor: Process Complete. ExitCode: 0
-Commandir.Commands.CommandExecutor: Deleting file: /home/arisilver/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/Commandir_hello.sh
-```  
 
 Commandir supports arguments, options and subcommands. These are demonstrated via the Commandir.yaml file included in the output directory:
 
