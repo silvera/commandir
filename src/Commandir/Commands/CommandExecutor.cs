@@ -174,7 +174,7 @@ internal sealed class CommandExecutor
         IExecutor executor = executorName switch
         {
             "test" => new Test(),
-            _ => new Run()
+            _ => new Shell()
         };
         var executionContext = new Commandir.Interfaces.ExecutionContext(_logger, context.GetCancellationToken(), command.GetPath(), parameterContext);
         return new Executable(executor, executionContext, _logger);

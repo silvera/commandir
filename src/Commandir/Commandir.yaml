@@ -8,12 +8,12 @@ commands:
         - name: world
           description: Prints 'Hello World'
           parameters:
-             command: echo "Hello World!"
+             run: echo "Hello World!"
    - name: greet
      description: Greets the user
      parameters:
         greeting: "Hello "
-        command: "echo {{greeting}} {{name}}!"
+        run: "echo {{greeting}} {{name}}!"
      arguments:
         - name: name
           description: The user's name

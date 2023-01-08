@@ -17,11 +17,11 @@ public class ShellScriptExecutionTests : TestsBase
                  commands:
                     - name: bash
                       parameters:
-                         command: ./hello_world.sh > {fileName}
+                         run: ./hello_world.sh > {fileName}
                     - name: pwsh
                       parameters:
-                         runner: pwsh
-                         command: ./hello_world.ps1 > {fileName}
+                         shell: pwsh
+                         run: ./hello_world.ps1 > {fileName}
         ";
     }
 

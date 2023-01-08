@@ -1,4 +1,3 @@
-using Commandir.Commands;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -18,15 +17,15 @@ public class ShellCommandExecutionTests : TestsBase
                  commands:
                     - name: bash
                       parameters:
-                         command: echo Hello World > {fileName}
+                         run: echo Hello World > {fileName}
                     - name: cmd
                       parameters:
-                         runner: cmd
-                         command: echo Hello World > {fileName}
+                         shell: cmd
+                         run: echo Hello World > {fileName}
                     - name: pwsh
                       parameters:
-                         runner: pwsh
-                         command: Write-Output 'Hello World' > {fileName}
+                         shell: pwsh
+                         run: Write-Output 'Hello World' > {fileName}
         ";
     }
 
