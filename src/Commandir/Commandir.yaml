@@ -3,7 +3,6 @@ description: Sample Commands
 commands:
    - name: hello
      parameters:
-        executable: true
         parallel: true
      commands:
         - name: world

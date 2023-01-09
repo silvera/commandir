@@ -3,7 +3,7 @@ Simple Command Runner
 
 [![test](https://github.com/silvera/commandir/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/silvera/commandir/actions/workflows/build-and-test.yml)
 
-Commandir is an application that allows users to define commands in a `Commandir.yaml` file and invoke them as commands of the Commandir application itself.
+Commandir is an application that allows users to define commands in a `Commandir.yaml` file and invoke them as commands of the Commandir application itself. Commandir looks for a `Commandir.yaml` file in the current directory by default.
 
 ### Hello World
 Here is the contents of a minimal Commandir.yaml file illustrating the canonical Hello World example:
@@ -122,22 +122,6 @@ The `greeting` defaults to "Hello " but can be optionally overridden by the `--g
 user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir greet "John Smith" --greeting "Hey!"
 Hey! John Smith!
 ```
-### Invocation
-Internally, each command is associated with an `executor`. The default executor is `shell`, which runs the commands specified by `run` using the specified shell. There is also a `test` executor, used for unit tests. 
-
-When a command is invoked, the executor receives a single dictionary containing the  values of the parameters, arguments and options.
-
-#### Subcommand Execution
-In most applications that support subcommands, commands with subcommands (aka `internal` commands) are not invokable by default. In the example above, `hello` has the subcommand `world`, so `hello` is not invokable but `world` is. 
-
-A command with subcommands can be made invokable by adding the `executable: true` parameter to its parameters dictionary. Invoking the parent command then invokes all subcommands recursively.  
-
-In the Sample Commands, `hello` is marked executable, so the `hello world` command can be invoked in the following ways:
- - `.\Commandir hello`
- - `.\Commandir hello world`
-
-#### Parallel Execution
-When an internal command is invoked, its subcommands are invoked sequentially by default. They can be invoked in parallel by adding the `parallel: true` parameter to the internal command's parameters dictionary.
 
 ### Parameters
 Parameters are a dictionary that contains user-defined key-value pairs. The value can be of any type, including dictionaries or lists, but are typically scalars. Different executors may require different parameters. 
@@ -157,3 +141,17 @@ Options are optional by default. They can be made required by adding `required: 
 ### Subcommands
 Commandir supports subcommands by adding a `commands` key to any command, as illustrated by the Sample Commands. 
 
+### Invocation
+Internally, each command is associated with an `executor`. The default executor is `shell`, which runs the commands specified by `run` using the specified shell. There is also a `test` executor, used for unit tests. 
+
+When a command is invoked, the executor receives a single dictionary containing the  values of the parameters, arguments and options.
+
+#### Subcommand Execution
+Commands with subcommands (aka `internal` commands) are invokable by default. In the Sample Commands, the `hello world` command can be invoked in the following ways:
+ - `.\Commandir hello`
+ - `.\Commandir hello world`
+
+Internal commands can be marked non-invokable by adding the parameter `executable: false` to the parameters dictionary.
+
+#### Parallel Execution
+When an internal command is invoked, its subcommands are invoked sequentially by default. They can be invoked in parallel by adding the `parallel: true` parameter to the internal command's parameters dictionary.

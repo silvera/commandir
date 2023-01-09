@@ -41,34 +41,29 @@ internal sealed class CommandExecutor
 
     public async Task<CommandExecutionResult> ExecuteAsync(InvocationContext invocationContext)
     {
-    
-        // Manually surface any parse errors that should prevent command execution.
-        // This is required because we're using Middlware to bypass the standard command execution pipeline.
-        // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
-        ValidateCommandInvocation(invocationContext);
-        
         CommandWithData? command = invocationContext.ParseResult.CommandResult.Command as CommandWithData;
         if(command == null)
             throw new Exception($"Failed to convert command to CommandWithData");
-        
+
         _logger.Debug("Invoking command: {CommandPath}", command.GetPath());
+
+        List<Executable> executables = new();
+        GetExecutableCommands(invocationContext, command, executables);
+
+        // Manually surface any parse errors that should prevent command execution.
+        // This is required because we're using Middlware to bypass the standard command execution pipeline.
+        // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
+        ValidateCommandInvocation(invocationContext, executables.Count);
+
+        var parameterContext = new ParameterContext(invocationContext, command);
 
         // Decide if child commands should be executed serially (the default) or in parallel.
         // This applies for all child commands - there is no way to have some children execution serially and others in parallel (yet).
-        var parameterContext = new ParameterContext(invocationContext, command);
-        
-        bool parallel = false;
-        object? parallelObj = parameterContext.GetParameterValue("parallel");
-        if(parallelObj is not null)
-        {
-            parallel = Convert.ToBoolean(parallelObj);
-        }
-
-        List<Executable> executables = new();
-        GetExecutables(invocationContext, command, executables);
+        bool? parallel = parameterContext.GetBooleanValue("parallel");
+        bool executeCommandsInParallel = parallel ?? false;
 
         List<object?> commandResults = new();
-        if(parallel)
+        if(executeCommandsInParallel)
         {
             // Execute tasks in parallel and wait for them to finish.
             Task<object?>[] executableTasks = executables
@@ -93,7 +88,7 @@ internal sealed class CommandExecutor
         return new CommandExecutionResult(commandResults);
     }
 
-    private static void ValidateCommandInvocation(InvocationContext invocationContext)
+    private static void ValidateCommandInvocation(InvocationContext invocationContext, int executableCommandCount)
     {
         IReadOnlyList<ParseError> parseErrors = invocationContext.ParseResult.Errors; 
         
@@ -113,6 +108,10 @@ internal sealed class CommandExecutor
                 if(invocationContext.ParseResult.Tokens.Count == 0)
                     throw new CommandValidationException(error.Message);
              
+                // If no commands are executable, return the error.
+                if(executableCommandCount == 0)
+                    throw new CommandValidationException(error.Message);
+
                 // Ensure the one parse error is the expected error.
                 if(error.Message != "Required command was not provided.")
                     throw new CommandValidationException(error.Message);
@@ -140,30 +139,30 @@ internal sealed class CommandExecutor
         }
     }    
 
-    private void GetExecutables(InvocationContext invocationContext, CommandWithData command, List<Executable> executables)
-    {   
-        bool isLeafCommand = command.Subcommands.Count == 0;
-
-        // Internal commands are not executable by default but leaf commands are.
-        bool isExecutable = isLeafCommand;
+    private void GetExecutableCommands(InvocationContext invocationContext, CommandWithData command, List<Executable> executableCommands)
+    {
+        // All commands are executable by default.
+        bool isExecutableCommand = true;
 
         var parameterContext = new ParameterContext(invocationContext, command);
-        object? executableObj = parameterContext.GetParameterValue("executable");
-        if(executableObj is not null)
+        bool? isExecutable = parameterContext.GetBooleanValue("executable");
+        if(isExecutable.HasValue)
         {
-            isExecutable = Convert.ToBoolean(executableObj);
+            isExecutableCommand = isExecutable.Value;
         }
 
-        if(isExecutable)
+        if(isExecutableCommand)
         {
-            if(isLeafCommand)
+            if(command.Subcommands.Count == 0)
             {
-                Executable executable = GetExecutable(invocationContext, command, parameterContext);
-                executables.Add(executable);
+                // Leaf commands are actually executable.
+                Executable executableCommand = GetExecutable(invocationContext, command, parameterContext);
+                executableCommands.Add(executableCommand);
             }
+
             foreach(CommandWithData subCommand in command.Subcommands)
             {
-                GetExecutables(invocationContext, subCommand, executables);
+                GetExecutableCommands(invocationContext, subCommand, executableCommands);
             }
         }
     }

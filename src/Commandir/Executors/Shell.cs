@@ -50,7 +50,7 @@ internal sealed class Shell : IExecutor
         
         object? runObj = context.ParameterContext.GetParameterValue("run");
         if(runObj is null)
-            throw new Exception("Failed to find parameter `run`");
+            throw new Exception($"Failed to find parameter `run`. Command `{context.Path}`");
 
         string? run = Convert.ToString(runObj);
         if(run is null)

@@ -27,6 +27,18 @@ internal sealed class ParameterContext : IParameterContext
         return parameterValue;
     }
 
+    public bool? GetBooleanValue(string parameterName)
+    {
+        bool? value  = null;
+        object? valueObj = GetParameterValue(parameterName);
+        if(valueObj is not null)
+        {
+            value = Convert.ToBoolean(valueObj);
+        }
+        
+        return value;
+    }
+
     private static void AddOrUpdateParameters(Dictionary<string, object?> dst, Dictionary<string, object?> src)
     {
         if(src is null)

@@ -1,4 +1,5 @@
 using Commandir.Commands;
+using System;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -6,7 +7,7 @@ namespace Commandir.Tests;
 
 public class CommandValidationTests : TestsBase
 {
-    private string GetCommands(string fileName)
+    private string GetCommands()
     {
         return $@"---
             commands:
@@ -17,7 +18,7 @@ public class CommandValidationTests : TestsBase
                  commands:
                     - name: build
                       parameters:
-                         message: Built > {fileName}
+                         message: Built
 
         ";
     }
@@ -25,9 +26,7 @@ public class CommandValidationTests : TestsBase
     [Fact]
     public async Task InvalidInternalCommandName()
     {
-        using var file1 = new TempFile(); 
-        string yaml = GetCommands(file1.FileName);
-
+        string yaml = GetCommands();
         CommandValidationException exception = await Assert.ThrowsAsync<CommandValidationException>(() =>
         {
             return RunCommandAsync(yaml, new [] {"validation-tsts"});
@@ -38,9 +37,7 @@ public class CommandValidationTests : TestsBase
     [Fact]
     public async Task ValidInternalCommandWithInvalidArgument()
     {
-        using var file1 = new TempFile();
-        string yaml = GetCommands(file1.FileName);
-        
+        string yaml = GetCommands();
         CommandValidationException exception = await Assert.ThrowsAsync<CommandValidationException>(() =>
         {
             return RunCommandAsync(yaml, new [] {"validation-tests", "build", "foo"});
@@ -51,13 +48,77 @@ public class CommandValidationTests : TestsBase
     [Fact]
     public async Task ValidInternalCommandNameWithInvalidSubCommandName()
     {
-        using var file1 = new TempFile(); 
-        string yaml = GetCommands(file1.FileName);
-        
+        string yaml = GetCommands();
         CommandValidationException exception = await Assert.ThrowsAsync<CommandValidationException>(() =>
         {
             return RunCommandAsync(yaml, new [] {"validation-tests", "bld"});
         });
         Assert.Equal("Unrecognized command or argument 'bld'.", exception.Message);
     }
+
+    [Fact]
+    public async Task NoCommandLineArguments()
+    {
+        string yaml = GetCommands();
+        CommandValidationException exception = await Assert.ThrowsAsync<CommandValidationException>(() =>
+        {
+            return RunCommandAsync(yaml, Array.Empty<string>());
+        });
+        Assert.Equal("Required command was not provided.", exception.Message);
+    }
+
+    private string GetNonExecutableInternalCommands()
+    {
+        return $@"---
+            commands:
+               - name: validation-tests
+                 executor: test
+                 parameters:
+                    executable: false
+                 commands:
+                    - name: build
+                      executor: test
+                      parameters:
+                         message: Built
+
+        ";
+    }
+
+    [Fact]
+    public async Task InternalCommandNotExecutable()
+    {
+        string yaml = GetNonExecutableInternalCommands();
+        CommandValidationException exception = await Assert.ThrowsAsync<CommandValidationException>(() =>
+        {
+            return RunCommandAsync(yaml, new []{ "validation-tests" });
+        });
+        Assert.Equal("Required command was not provided.", exception.Message);
+    }
+
+    // private string GetNonExecutableLeafCommands()
+    // {
+    //     return $@"---
+    //         commands:
+    //            - name: validation-tests
+    //              executor: test
+    //              commands:
+    //                 - name: build
+    //                   executor: test
+    //                   parameters:
+    //                      message: Built
+    //                      executable: false
+
+    //     ";
+    // }
+
+    // [Fact]
+    // public async Task LeafCommandNotExecutable()
+    // {
+    //     string yaml = GetNonExecutableLeafCommands();
+    //     CommandValidationException exception = await Assert.ThrowsAsync<CommandValidationException>(() =>
+    //     {
+    //         return RunCommandAsync(yaml, new []{ "validation-tests", "build" });
+    //     });
+    //     Assert.Equal("Required command was not provided.", exception.Message);
+    // }
 }
