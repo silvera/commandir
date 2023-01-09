@@ -19,5 +19,6 @@ commands:
           description: The user's name
      options:
         -  name: greeting
+           shortName: g
            description: The greeting
            required: false

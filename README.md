@@ -3,9 +3,9 @@ Simple Command Runner
 
 [![test](https://github.com/silvera/commandir/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/silvera/commandir/actions/workflows/build-and-test.yml)
 
-Commandir lets you define commands in a Commandir.yaml file and execute them via the Commandir CLI. Commandir then exposes those commands as commands to Commandir itself.
+Commandir is an application that allows users to define commands in a file and invoke them as commands of the Commandir application itself.
 
-By default, Commandir looks for a Commandir.yaml file in the current directory. Here is the contents of the Commandir.yaml file for the canonical Hello World example:
+Commandir looks for a Commandir.yaml file in the current directory. Here is the contents of a minimal Commandir.yaml file illustrating the canonical Hello World example:
 
 ```
 ---
@@ -22,18 +22,18 @@ user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./
 Hello World!
 ```
 
-This runs `echo "Hello World!"` using the default shell. The default shell on Linux/MacOS is `bash` and  `pwsh` (Powershell) on Windows". The `cmd` (DOS) shell is also supported on Windows. The shell can be changed by specifying the `shell` parameter. The following example runs the `hello` command using the `sh` shell on Linux:
+This runs `echo "Hello World!"` using the default shell. The default shell is `bash` on Linux/MacOS and `pwsh` (Powershell) on Windows". The `cmd` (DOS) shell is also supported on Windows. The shell can be changed by specifying the `shell` parameter. The following example runs the `hello` command using the `sh` shell on Linux:
 
 ```
 ---
 commands:
    - name: hello
      parameters:
-        shell: sh
         run: echo "Hello World!"
+        shell: sh
 ```
 
-By default, Commandir does not log any activity so as not to contaminate STDOUT. We can enable verbose logging via the --verbose (-v) flag, which shows the `sh` shell is used:
+By default, Commandir does not log any activity so as not to contaminate STDOUT. Verbose logging is enabled via the --verbose (-v) flag, which shows the `sh` shell is used:
 ```
 user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir -v hello
 Commandir.Commands.CommandExecutor: Invoking command: /Commandir/hello
@@ -65,7 +65,7 @@ Commands:
   hello
 ```
 
-Commandir supports arguments, options and subcommands. These are demonstrated via the Commandir.yaml file included in the output directory:
+Commandir supports parameters, arguments, options and subcommands. These are demonstrated via the Commandir.yaml file included with the application:
 
 ```
 ---
@@ -89,10 +89,32 @@ commands:
           description: The user's name
      options:
         -  name: greeting
+           shortName: g
            description: The greeting
            required: false
 ```
-Arguments are required while options are optional by default. They can be made required by adding `required: true` to the option.  
+### Command Execution
+Internally, each command is associated with an `executor`. The default executor is `shell`, which runs the commands specified by `run` using the specified shell. There is also a `test` executor, used for unit tests. 
+
+When a command is invoked, the executor receives a single dictionary containing the  values of the parameters, arguments and options.
+
+### Parameters
+Parameters are a dictionary that contains user-defined key-value pairs. The value can be of any type, including dictionaries or lists, but are typically scalars. The use and interpretation of parameters is executor-dependent. 
+
+The `shell` executor requires a `run` parameter, whose content is invoked by the specified shell. As shown earlier, the desired shell can be specified by the `shell` parameter. 
+
+Parameters can be set at higher levels e.g. the top-level and overridden at lower levels (e.g. for a particular command) by specifying a different value.
+
+Parameters can also be overridden by arguments or options, by setting the name of argument or option to the name of the parameter. The `greeting` parameter and option above illustrates this. 
+
+### Arguments
+Arguments are required. 
+
+### Options
+Options are optional by default. They can be made required by adding `required: true` to the option. 
+
+### Subcommands
+Commandir supports subcommands by adding a `commands` key to any command, as illustrated by the sample commands above.
 
 Running the `greet` command:
 ```
@@ -106,4 +128,3 @@ user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./
 Hey! John Smith!
 ```
 
-This example also demonstrates the relationship between parameters, arguments and options. Parameters can be used to specify a default value. Arguments override parameters and options override arguments or parameters.
