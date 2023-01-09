@@ -4,6 +4,7 @@ commands:
    - name: hello
      parameters:
         executable: true
+        parallel: true
      commands:
         - name: world
           description: Prints 'Hello World'

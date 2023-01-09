@@ -29,6 +29,9 @@ internal sealed class ParameterContext : IParameterContext
 
     private static void AddOrUpdateParameters(Dictionary<string, object?> dst, Dictionary<string, object?> src)
     {
+        if(src is null)
+            return;
+        
         foreach(var pair in src)
         {
             AddOrUpdateParameter(dst, pair.Key, pair.Value);
@@ -37,7 +40,7 @@ internal sealed class ParameterContext : IParameterContext
 
     private static void AddOrUpdateParameter(Dictionary<string, object?> dst, string name, object? value)
     {
-        if(value != null)
+        if(value is not null)
             dst[name] = value;
     }
 
