@@ -41,6 +41,11 @@ internal sealed class CommandExecutor
 
     public async Task<CommandExecutionResult> ExecuteAsync(InvocationContext invocationContext)
     {
+        // Manually surface any parse errors that should prevent command execution.
+        // This is required because we're using Middlware to bypass the standard command execution pipeline.
+        // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
+        ValidateCommandInvocation(invocationContext);
+
         CommandWithData? command = invocationContext.ParseResult.CommandResult.Command as CommandWithData;
         if(command == null)
             throw new Exception($"Failed to convert command to CommandWithData");
@@ -50,11 +55,9 @@ internal sealed class CommandExecutor
         List<Executable> executables = new();
         GetExecutableCommands(invocationContext, command, executables);
 
-        // Manually surface any parse errors that should prevent command execution.
-        // This is required because we're using Middlware to bypass the standard command execution pipeline.
-        // This lets us handle invocations for internal commands that would normally result in a "Required command was not provided." error.
-        ValidateCommandInvocation(invocationContext, executables.Count);
-
+        if(executables.Count == 0)
+            throw new CommandValidationException("No executable commands were found.");
+       
         var parameterContext = new ParameterContext(invocationContext, command);
 
         // Decide if child commands should be executed serially (the default) or in parallel.
@@ -88,7 +91,7 @@ internal sealed class CommandExecutor
         return new CommandExecutionResult(commandResults);
     }
 
-    private static void ValidateCommandInvocation(InvocationContext invocationContext, int executableCommandCount)
+    private static void ValidateCommandInvocation(InvocationContext invocationContext)
     {
         IReadOnlyList<ParseError> parseErrors = invocationContext.ParseResult.Errors; 
         
@@ -108,10 +111,6 @@ internal sealed class CommandExecutor
                 if(invocationContext.ParseResult.Tokens.Count == 0)
                     throw new CommandValidationException(error.Message);
              
-                // If no commands are executable, return the error.
-                if(executableCommandCount == 0)
-                    throw new CommandValidationException(error.Message);
-
                 // Ensure the one parse error is the expected error.
                 if(error.Message != "Required command was not provided.")
                     throw new CommandValidationException(error.Message);

@@ -92,33 +92,6 @@ public class CommandValidationTests : TestsBase
         {
             return RunCommandAsync(yaml, new []{ "validation-tests" });
         });
-        Assert.Equal("Required command was not provided.", exception.Message);
+        Assert.Equal("No executable commands were found.", exception.Message);
     }
-
-    // private string GetNonExecutableLeafCommands()
-    // {
-    //     return $@"---
-    //         commands:
-    //            - name: validation-tests
-    //              executor: test
-    //              commands:
-    //                 - name: build
-    //                   executor: test
-    //                   parameters:
-    //                      message: Built
-    //                      executable: false
-
-    //     ";
-    // }
-
-    // [Fact]
-    // public async Task LeafCommandNotExecutable()
-    // {
-    //     string yaml = GetNonExecutableLeafCommands();
-    //     CommandValidationException exception = await Assert.ThrowsAsync<CommandValidationException>(() =>
-    //     {
-    //         return RunCommandAsync(yaml, new []{ "validation-tests", "build" });
-    //     });
-    //     Assert.Equal("Required command was not provided.", exception.Message);
-    // }
 }
