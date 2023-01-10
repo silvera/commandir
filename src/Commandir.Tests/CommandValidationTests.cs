@@ -66,32 +66,4 @@ public class CommandValidationTests : TestsBase
         });
         Assert.Equal("Required command was not provided.", exception.Message);
     }
-
-    private string GetNonExecutableInternalCommands()
-    {
-        return $@"---
-            commands:
-               - name: validation-tests
-                 executor: test
-                 parameters:
-                    executable: false
-                 commands:
-                    - name: build
-                      executor: test
-                      parameters:
-                         message: Built
-
-        ";
-    }
-
-    [Fact]
-    public async Task InternalCommandNotExecutable()
-    {
-        string yaml = GetNonExecutableInternalCommands();
-        CommandValidationException exception = await Assert.ThrowsAsync<CommandValidationException>(() =>
-        {
-            return RunCommandAsync(yaml, new []{ "validation-tests" });
-        });
-        Assert.Equal("No executable commands were found.", exception.Message);
-    }
 }

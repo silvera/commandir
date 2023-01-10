@@ -27,16 +27,184 @@ public sealed class CommandExecutionResult
     }
 }
 
+internal sealed class ExecutableCommand
+{
+    private readonly IExecutor _executor;
+    private readonly IExecutionContext _executionContext;
+
+    public string Path { get; }
+    public ExecutableCommand(CommandWithData command, ParameterContext parameterContext, CancellationToken cancellationToken, ILogger logger)
+    {
+        Path = command.GetPath();
+
+        string? executorName = command.Data.Executor;
+        _executor = executorName switch
+        {
+            "test" => new Test(),
+            _ => new Shell()
+        };
+        _executionContext = new Commandir.Interfaces.ExecutionContext(logger,cancellationToken, command.GetPath(), parameterContext);
+    }
+
+    public Task<object?> ExecuteAsync()
+    {
+        return _executor.ExecuteAsync(_executionContext);
+    }
+}
+
+internal interface IExecutionGroup
+{
+    string Name { get; }
+    List<ExecutableCommand> Commands { get; }
+    List<IExecutionGroup> Groups { get; }
+    Task<List<object?>> ExecuteAsync();
+    void Add(ExecutableCommand command);
+    void Add(IExecutionGroup group);
+}
+
+internal abstract class ExecutionGroupBase : IExecutionGroup
+{
+    protected ILogger Logger { get; }
+    protected ExecutionGroupBase(string name, ILogger logger)
+    {
+        Name = name;
+        Logger = logger;
+    }
+    
+    public string Name { get; }
+
+    public List<ExecutableCommand> Commands { get; } = new ();
+    public List<IExecutionGroup> Groups { get; } = new ();
+
+    public virtual void Add(ExecutableCommand command) 
+    {
+        Logger.Debug("Adding command `{Path}` to group `{GroupName}`", command.Path, Name);
+        Commands.Add(command);
+    }
+    public virtual void Add(IExecutionGroup group)
+    {
+        Logger.Debug("Adding group `{Name}` of type `{Type}` to group `{GroupName}`", group.Name, group.GetType().Name, Name);
+        Groups.Add(group);
+    }
+
+    public abstract Task<List<object?>> ExecuteAsync();
+}
+
+
+internal sealed class SequentialExecutionGroup : ExecutionGroupBase
+{
+    private readonly ILogger _logger;
+    public SequentialExecutionGroup(string name, ILogger logger) : base(name, logger)
+    {
+        _logger = logger;
+    }
+
+    private async Task<List<object?>> ExecuteAsyncCore(IExecutionGroup group)
+    {
+        List<object?> results = new();
+        foreach(ExecutableCommand command in group.Commands)
+        {
+            _logger.Debug("Executing command `{CommandPath}` ({GroupName})", command.Path, Name);
+            results.Add(await command.ExecuteAsync());
+        }
+
+        foreach(IExecutionGroup g in group.Groups)
+        {
+            _logger.Debug("Executing group `{Name}` ({GroupName})", g.Name, Name);
+            List<object?> groupResults = await g.ExecuteAsync();
+            results.AddRange(groupResults);
+        }
+
+        return results;
+    }
+
+
+    public override Task<List<object?>> ExecuteAsync()
+    {
+        return ExecuteAsyncCore(this);
+    }
+}
+
+internal sealed class ParallelExecutionGroup : ExecutionGroupBase
+{
+    private readonly ILogger _logger;
+    public ParallelExecutionGroup(string name, ILogger logger) : base(name, logger)
+    {
+        _logger = logger;
+    }
+
+    private async Task<List<object?>> ExecuteAsyncCore(IExecutionGroup group)
+    {
+        // Commands
+        _logger.Debug("Executing commands `{Commands}` ({GroupName})", string.Join(", ", Commands.Select(c => c.Path)), Name);
+        
+        List<object?> results = new ();
+        Task<object?>[] tasks = Commands
+            .Select(e => e.ExecuteAsync())
+            .ToArray();
+        
+        await Task.WhenAll(tasks);
+        foreach(var task in tasks)
+        {
+            results.Add(await task);
+        }
+
+        // Groups
+        foreach(IExecutionGroup g in group.Groups)
+        {
+            _logger.Debug("Executing group `{Group}` ({GroupName})", g.Name, Name);
+            List<object?> groupResults = await g.ExecuteAsync();
+            results.AddRange(groupResults);
+        }
+
+        return results;
+
+    }
+
+    public override Task<List<object?>> ExecuteAsync()
+    {
+        return ExecuteAsyncCore(this);
+    }
+}
+
 /// <summary>
 /// Responsibe for executing the invoked command. 
 /// </summary>
 internal sealed class CommandExecutor
 {
     private readonly ILogger _logger;
+    private readonly ILogger _loggerFactory;
     
     public CommandExecutor(ILogger logger)
     {
+        _loggerFactory = logger;
         _logger = logger.ForContext<CommandExecutor>();
+    }
+
+    private void AddCommands(InvocationContext invocationContext, CommandWithData command, IExecutionGroup group)
+    {
+        var parameterContext = new ParameterContext(invocationContext, command);
+        if(command.Subcommands.Count == 0)
+        {  
+            var executableCommand = new ExecutableCommand(command, parameterContext, invocationContext.GetCancellationToken(), _logger);
+            group.Add(executableCommand);
+        }
+        else
+        {
+            string name = command.Name;
+            bool? parallel = parameterContext.GetBooleanValue("parallel");
+            bool executeCommandsInParallel = parallel ?? false;
+            IExecutionGroup subGroup = executeCommandsInParallel 
+                ? new ParallelExecutionGroup(name, _loggerFactory.ForContext<ParallelExecutionGroup>()) 
+                : new SequentialExecutionGroup(name, _loggerFactory.ForContext<SequentialExecutionGroup>());
+
+            group.Add(subGroup);
+
+            foreach(CommandWithData subCommand in command.Subcommands)
+            {
+                AddCommands(invocationContext, subCommand, subGroup);
+            }
+        }
     }
 
     public async Task<CommandExecutionResult> ExecuteAsync(InvocationContext invocationContext)
@@ -52,43 +220,14 @@ internal sealed class CommandExecutor
 
         _logger.Debug("Invoking command: {CommandPath}", command.GetPath());
 
-        List<Executable> executables = new();
-        GetExecutableCommands(invocationContext, command, executables);
+        IExecutionGroup rootGroup = new SequentialExecutionGroup("root", _loggerFactory.ForContext<SequentialExecutionGroup>());
+        AddCommands(invocationContext, command, rootGroup);
 
-        if(executables.Count == 0)
+        if(rootGroup.Commands.Count == 0 && rootGroup.Groups.Count == 0)
             throw new CommandValidationException("No executable commands were found.");
        
-        var parameterContext = new ParameterContext(invocationContext, command);
-
-        // Decide if child commands should be executed serially (the default) or in parallel.
-        // This applies for all child commands - there is no way to have some children execution serially and others in parallel (yet).
-        bool? parallel = parameterContext.GetBooleanValue("parallel");
-        bool executeCommandsInParallel = parallel ?? false;
-
-        List<object?> commandResults = new();
-        if(executeCommandsInParallel)
-        {
-            // Execute tasks in parallel and wait for them to finish.
-            Task<object?>[] executableTasks = executables
-                .Select(e => e.ExecuteAsync())
-                .ToArray();
-            
-            await Task.WhenAll(executableTasks);
-            foreach(var executableTask in executableTasks)
-            {
-                commandResults.Add(await executableTask);
-            }
-        }
-        else
-        {
-            // Execute tasks serially.
-            foreach(var executable in executables)
-            {
-                commandResults.Add(await executable.ExecuteAsync());
-            }
-        }
-
-        return new CommandExecutionResult(commandResults);
+        List<object?> results = await rootGroup.ExecuteAsync(); 
+        return new CommandExecutionResult(results);
     }
 
     private static void ValidateCommandInvocation(InvocationContext invocationContext)
