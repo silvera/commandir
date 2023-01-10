@@ -12,8 +12,6 @@ public class ShellCommandExecutionTests : TestsBase
         return $@"---
             commands:
                - name: shell-command-tests
-                 parameters:
-                    executable: true
                  commands:
                     - name: bash
                       parameters:

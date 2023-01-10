@@ -13,8 +13,6 @@ public class CommandValidationTests : TestsBase
             commands:
                - name: validation-tests
                  executor: test
-                 parameters:
-                    executable: true
                  commands:
                     - name: build
                       parameters:

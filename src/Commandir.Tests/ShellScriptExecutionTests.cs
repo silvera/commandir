@@ -12,8 +12,6 @@ public class ShellScriptExecutionTests : TestsBase
         return $@"---
             commands:
                - name: shell-script-tests
-                 parameters:
-                    executable: true
                  commands:
                     - name: bash
                       parameters:
