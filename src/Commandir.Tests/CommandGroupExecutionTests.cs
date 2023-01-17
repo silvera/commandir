@@ -60,10 +60,13 @@ public class CommandGroupExecutionTests : TestsBase
         string yaml = GetCommands();
         Task<CommandExecutionResult?> commandTask = RunCommandAsync(yaml, new [] {"group-tests"});
         
-        // The total time is governed by the serial tasks: 5s + 5s + 5s = 15s
+        // The total time is governed by the serial commands: 5s + 5s + 5s = 15s
         // We use a 20s delay as a buffer.
         Task delayTask = Task.Delay(System.TimeSpan.FromSeconds(20));
+        
         var resultTask = await Task.WhenAny(commandTask, delayTask);
+        
+        // Ensure the commands finish running before the timeout. 
         Assert.Equal(commandTask, resultTask);
         
         List<string?> expectedCommandResults = new List<string?>
@@ -78,37 +81,5 @@ public class CommandGroupExecutionTests : TestsBase
         
         List<string?> commandResults = commandTask.Result!.Results.Select(i => Convert.ToString(i)).ToList();
         Assert.Equal(expectedCommandResults, commandResults);
-        
-        
-        //Assert.Equal(0, commandTask.Result!.Results.Count());
-        
-        
-        // if(parallel)
-        // {
-        //     // Command Time: ~10 seconds (10 per task)
-        //     // Delay Time 15 seconds
-        //     // Result: commandTask
-        //     Assert.Equal(commandTask, resultTask);
-            
-        //     CommandExecutionResult? commandResult = await commandTask;
-        //     Assert.NotNull(commandResult);
-            
-        //     string? command1Result = commandResult!.Results.First() as string;
-        //     Assert.NotNull(command1Result);
-        //     Assert.Equal("Compiled", command1Result);
-            
-        //     string? command2Result = commandResult!.Results.Last() as string;
-        //     Assert.NotNull(command2Result);
-        //     Assert.Equal("Tested", command2Result);
-        // }
-        // else
-        // {
-        //     // Command Time: 20 seconds (10 per task)
-        //     // Delay Time 15 seconds
-        //     // Result: delayTask
-        //     Assert.Equal(delayTask, resultTask);
-
-        //     // We cannot validate the command results because the command task is not yet complete at this point. 
-        // }
     }
 }

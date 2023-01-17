@@ -161,55 +161,45 @@ When an internal command is invoked, its subcommands are invoked sequentially by
 ---
 description: Serial and Parallel Command Unit Test Example
 commands:
-   - name: all
-     parameters:
-        parallel: true
-     commands:
-        - name: serial
-          parameters:
-             parallel: false
-          commands:
-             - name: serial1
+   - name: group-tests
+      parameters:
+         parallel: true
+         logMessage: true
+         delaySeconds: 5
+      commands:
+         - name: serial
+         parameters:
+            parallel: false
+         commands:
+            - name: serial1
                executor: test
                parameters:
-                  message: Serial 1
-                  logMessage: true
-                  delaySeconds: 5
-             - name: serial2
+                  message: serial1
+            - name: serial2
                executor: test
                parameters:
-                  message: Serial 2
-                  logMessage: true
-                  delaySeconds: 5
-             - name: serial3
+                  message: serial2
+            - name: serial3
                executor: test
                parameters:
-                  message: Serial 3
-                  logMessage: true
-                  delaySeconds: 5
-        - name: parallel
-          parameters:
-             parallel: true
-          commands:
-             - name: parallel1
+                  message: serial3
+         - name: parallel
+         parameters:
+            parallel: true
+         commands:
+            - name: parallel1
                executor: test
                parameters:
-                  message: Parallel 1
-                  logMessage: true
-                  delaySeconds: 5
-             - name: parallel2
+                  message: parallel1
+            - name: parallel2
                executor: test
                parameters:
-                  message: Parallel 2
-                  logMessage: true
-                  delaySeconds: 5
-             - name: parallel3
+                  message: parallel2
+            - name: parallel3
                executor: test
                parameters:
-                  message: Parallel 3
-                  logMessage: true
-                  delaySeconds: 5
+                  message: parallel3
 
 ```
 
-Invoking the `all` command creates a top-level parallel command group (`all`) containing a serial command group (`serial`) and another parallel command group (`parallel` ). The serial and parallel groups are executed in parallel, with the `serial1-serial3` commands executed serially and the `parallel1-parallel3` commands executed in parallel.
+Invoking the `group-tests` command creates a top-level parallel command group (`group-tests`) containing a serial command group (`serial`) and another parallel command group (`parallel` ). The serial and parallel groups are executed in parallel, with the `serial1-serial3` commands executed serially and the `parallel1-parallel3` commands executed in parallel.
