@@ -122,10 +122,10 @@ user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./
 Hey! John Smith!
 ```
 ### Templates
-Parameters, arguments and options can be referenced in the `run` parameter via `mustache template` syntax. In the above example, the values of the greeting parameter and name argument are populated with the appropriate values when the command is executed.
+Parameters, arguments and options can be referenced in the `run` parameter via `mustache` template syntax. In the above example, the values of the greeting parameter and name argument are populated with the appropriate values when the command is executed.
 
 ### Parameters
-Parameters are a dictionary that contains key-value pairs. The value can be of any type, including dictionaries or lists, but are typically scalars. Different executors may require different parameters. In addition, users can define arbitrary key-value pairs and reference them in the `run` parameter, as illustrated in the Sample Commands. 
+Parameters are a dictionary that contains key-value pairs. The value can be of any type, including dictionaries or lists, but are typically scalars. Different executors may require different parameters. In addition, users can define arbitrary key-value pairs and reference them via templates.
 
 The `shell` executor requires a `run` parameter, whose content is executed by the specified shell. As shown earlier, the desired shell can be specified by the `shell` parameter. 
 
@@ -140,7 +140,7 @@ Arguments are required.
 Options are optional by default. They can be made required by adding `required: true` to the option. A `shortName` can also be specified, which allows options to be invoked via flag syntax, e.g. `-g` instead of `--greeting`.
 
 ### Subcommands
-Commandir supports subcommands by adding a `commands` key to any command, as illustrated by the Sample Commands. 
+Commandir supports subcommands by adding a `commands` dictionary to any command, as illustrated by the Sample Commands. 
 
 ### Invocation
 Internally, each command is associated with an `executor`. The default executor is `shell`, which runs the commands specified by `run` using the specified shell. There is also a `test` executor, used for unit tests. 
@@ -152,7 +152,64 @@ Commands with subcommands (aka `internal` commands) are invokable by default. In
  - `.\Commandir hello`
  - `.\Commandir hello world`
 
-Invoking an internal command will automatically invoke all child commands recursively. 
+Invoking an internal command will automatically invoke all child commands recursively. This differs from the default behavior of most applications with subcommands because require a single subcommand to be invoked. 
 
 #### Parallel Execution
 When an internal command is invoked, its subcommands are invoked sequentially by default. They can be invoked in parallel by adding the `parallel: true` parameter to the internal command's parameters dictionary.
+
+```
+---
+description: Serial and Parallel Command Unit Test Example
+commands:
+   - name: all
+     parameters:
+        parallel: true
+     commands:
+        - name: serial
+          parameters:
+             parallel: false
+          commands:
+             - name: serial1
+               executor: test
+               parameters:
+                  message: Serial 1
+                  logMessage: true
+                  delaySeconds: 5
+             - name: serial2
+               executor: test
+               parameters:
+                  message: Serial 2
+                  logMessage: true
+                  delaySeconds: 5
+             - name: serial3
+               executor: test
+               parameters:
+                  message: Serial 3
+                  logMessage: true
+                  delaySeconds: 5
+        - name: parallel
+          parameters:
+             parallel: true
+          commands:
+             - name: parallel1
+               executor: test
+               parameters:
+                  message: Parallel 1
+                  logMessage: true
+                  delaySeconds: 5
+             - name: parallel2
+               executor: test
+               parameters:
+                  message: Parallel 2
+                  logMessage: true
+                  delaySeconds: 5
+             - name: parallel3
+               executor: test
+               parameters:
+                  message: Parallel 3
+                  logMessage: true
+                  delaySeconds: 5
+
+```
+
+Invoking the `all` command creates a top-level parallel command group (`all`) containing a serial command group (`serial`) and another parallel command group (`parallel` ). The serial and parallel groups are executed in parallel, with the `serial1-serial3` commands executed serially and the `parallel1-parallel3` commands executed in parallel.
