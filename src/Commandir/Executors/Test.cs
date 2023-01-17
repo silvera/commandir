@@ -26,6 +26,16 @@ public sealed class Test : IExecutor
             }
         }
 
+        bool logMessage = false;
+        object? logMessageObj = context.ParameterContext.GetParameterValue("logMessage");
+        if(messageObj is not null)
+            logMessage = Convert.ToBoolean(logMessageObj);
+      
+        if(logMessage)
+        {
+            context.Logger.Information("Message: {Message}", formattedMessageStr);
+        }
+
         return formattedMessageStr;
     }
 }
