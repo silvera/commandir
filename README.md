@@ -3,7 +3,7 @@ Simple Command Runner
 
 [![test](https://github.com/silvera/commandir/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/silvera/commandir/actions/workflows/build-and-test.yml)
 
-Commandir is an application that allows users to define commands in a `Commandir.yaml` file and invoke them as commands of the Commandir application itself. Commandir looks for a `Commandir.yaml` file in the current directory by default.
+Commandir is an application that allows users to define commands in a `Commandir.yaml` file and invoke them as commands of the Commandir application itself. Commandir looks for a `Commandir.yaml` file in the current directory.
 
 ### Hello World
 Here is the contents of a minimal Commandir.yaml file illustrating the canonical Hello World example:
@@ -15,32 +15,7 @@ commands:
      parameters:
         run: echo "Hello World!"
 ```
-
-Running Commandir with the `hello` command on Ubuntu 22.04 LTS results in the following output:
-
-```
-user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir hello
-Hello World!
-```
-
-This runs `echo "Hello World!"` using the default shell. The default shells are:
- - Linux/MacOS: `bash`
- - Windows: `pwsh` (Powershell)
-
-The `cmd` (DOS) shell is also supported on Windows. The shell can be changed by specifying the `shell` parameter. The following example runs the `hello` command using the `sh` shell on Linux:
-
-```
----
-commands:
-   - name: hello
-     parameters:
-        run: echo "Hello World!"
-        shell: sh
-```
-
-### Running Commandir
-
-Running Commandir from a directory containing a Commandir.yaml file, without any command-line arguments, displays the help information:
+Running Commandir from the directory containing this Commandir.yaml file, without any command line arguments, displays the help information:
 
 ```
 user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir 
@@ -60,14 +35,38 @@ Commands:
   hello
 ```
 
+Note how the `hello` command defined in the Commandir.yaml file is a bona fide Commandir command.
+
 Running Commandir from a directory that does not contain a Commandir.yaml file generates an error message:
 ```
 user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/no-commandir-file$ ../Commandir 
 Commandir: FileNotFoundException: Could not find file '/home/user/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/no-commandir-file/Commandir.yaml'.
 ```
 
+Running Commandir with the `hello` command on Linux (Ubuntu 22.04 LTS) results in the following output:
+
+```
+user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir hello
+Hello World!
+```
+
+This runs `echo "Hello World!"` using the default shell for the OS. The default shells are:
+ - `bash`: (Linux/MacOS)
+ - `pwsh`: (Windows, Powershell)
+
+The `cmd` (DOS) shell is also supported on Windows. The shell can be changed by specifying the `shell` parameter. The following example runs the `hello` command using the `sh` shell on Linux:
+
+```
+---
+commands:
+   - name: hello
+     parameters:
+        run: echo "Hello World!"
+        shell: sh
+```
+
 ### Logging
-By default, Commandir does not log any activity so as not to contaminate STDOUT. Verbose logging is enabled via the --verbose (-v) flag, which shows the `sh` shell is used:
+Commandir does not log any activity by default, so as not to contaminate STDOUT. Verbose logging is enabled via the --verbose (-v) flag, which shows the `sh` shell is used:
 ```
 user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir -v hello
 Commandir.Commands.CommandExecutor: Invoking command: /Commandir/hello
@@ -122,13 +121,15 @@ The `greeting` defaults to "Hello " but can be optionally overridden by the `--g
 user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir greet "John Smith" --greeting "Hey!"
 Hey! John Smith!
 ```
+### Templates
+Parameters, arguments and options can be referenced in the `run` parameter via `mustache template` syntax. In the above example, the values of the greeting parameter and name argument are populated with the appropriate values when the command is executed.
 
 ### Parameters
-Parameters are a dictionary that contains user-defined key-value pairs. The value can be of any type, including dictionaries or lists, but are typically scalars. Different executors may require different parameters. 
+Parameters are a dictionary that contains key-value pairs. The value can be of any type, including dictionaries or lists, but are typically scalars. Different executors may require different parameters. In addition, users can define arbitrary key-value pairs and reference them in the `run` parameter, as illustrated in the Sample Commands. 
 
 The `shell` executor requires a `run` parameter, whose content is executed by the specified shell. As shown earlier, the desired shell can be specified by the `shell` parameter. 
 
-Parameters can be defined at higher levels (e.g. an internal command) and overridden at lower levels (e.g. a particular command) by specifying a different value. Parameters can also be defined at the top (root) level.
+Parameters can be defined at higher levels (e.g. a parent command) and overridden at lower levels (e.g. a child command) by specifying a different value. Parameters can also be defined at the top (root) level.
 
 Parameters can also be overridden by arguments or options, by setting the name of argument or option to the name of the parameter. The `greeting` parameter and option above illustrates this. 
 
@@ -151,7 +152,7 @@ Commands with subcommands (aka `internal` commands) are invokable by default. In
  - `.\Commandir hello`
  - `.\Commandir hello world`
 
-Internal commands can be marked non-invokable by adding the parameter `executable: false` to the parameters dictionary.
+Invoking an internal command will automatically invoke all child commands recursively. 
 
 #### Parallel Execution
 When an internal command is invoked, its subcommands are invoked sequentially by default. They can be invoked in parallel by adding the `parallel: true` parameter to the internal command's parameters dictionary.
