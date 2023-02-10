@@ -1,0 +1,10 @@
+---
+name: Commandir
+description: The canonical Hello World example
+commands:
+   - name: hello
+     commands:
+        - name: world
+          description: Prints 'Hello World!'
+          parameters:
+             run: echo "Hello World!"

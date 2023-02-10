@@ -1,0 +1,17 @@
+---
+name: Commandir
+description: Greeting commands
+commands:
+   - name: greet
+     description: Greets the user
+     parameters:
+        greeting: "Hello "
+        run: "echo {{greeting}} {{name}}!"
+     arguments:
+        - name: name
+          description: The user's name
+     options:
+        -  name: greeting
+           shortName: g
+           description: The greeting
+           required: false
