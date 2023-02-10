@@ -13,6 +13,7 @@ public class ParallelCommandExecutionTests : TestsBase
             commands:
                - name: parallel-tests
                  parameters:
+                    executable: true
                     parallel: {parallel}
                  commands:
                     - name: compile

@@ -15,6 +15,7 @@ public class CommandGroupExecutionTests : TestsBase
            commands:
               - name: group-tests
                 parameters:
+                   executable: true
                    parallel: true
                    logMessage: true
                    delaySeconds: 5
