@@ -28,7 +28,8 @@ public sealed class YamlCommandBuilder
     internal CommandWithData Build()
     {
         CommandData rootCommandData = _deserializer.Deserialize<CommandData>(_yaml); 
-        rootCommandData.Name = "Commandir";
+        rootCommandData.Name = rootCommandData.Name ?? "Commandir";
+
         rootCommandData.Options.Add(new OptionData
         {
             Name = "verbose",

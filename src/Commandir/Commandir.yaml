@@ -1,4 +1,5 @@
 ---
+name: Commandir
 description: Sample Commands
 commands:
    - name: hello
