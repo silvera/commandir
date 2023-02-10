@@ -41,8 +41,4 @@
     </AssemblyAttribute>
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Commandir.Core\Commandir.Core.csproj" />
-  </ItemGroup>
-
 </Project>

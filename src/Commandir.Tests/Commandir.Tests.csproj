@@ -39,7 +39,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Commandir\Commandir.csproj" />
-    <ProjectReference Include="..\Commandir.Core\Commandir.Core.csproj" />
   </ItemGroup>
 
 </Project>
