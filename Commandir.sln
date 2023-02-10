@@ -9,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Commandir", "src\Commandir\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Commandir.Tests", "src\Commandir.Tests\Commandir.Tests.csproj", "{741F889F-1BED-44A9-A4C3-186AED7EF6C3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Commandir.Core", "src\Commandir.Core\Commandir.Core.csproj", "{A89D892A-8DB2-4BD1-8ADC-76D0FF3C8F60}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,14 +26,9 @@ Global
 		{741F889F-1BED-44A9-A4C3-186AED7EF6C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{741F889F-1BED-44A9-A4C3-186AED7EF6C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{741F889F-1BED-44A9-A4C3-186AED7EF6C3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A89D892A-8DB2-4BD1-8ADC-76D0FF3C8F60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A89D892A-8DB2-4BD1-8ADC-76D0FF3C8F60}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A89D892A-8DB2-4BD1-8ADC-76D0FF3C8F60}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A89D892A-8DB2-4BD1-8ADC-76D0FF3C8F60}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{916C08D8-08C9-495B-A0D9-1BBB354D1B5F} = {19D0F818-5225-4446-B901-FD979D206A84}
 		{741F889F-1BED-44A9-A4C3-186AED7EF6C3} = {19D0F818-5225-4446-B901-FD979D206A84}
-		{A89D892A-8DB2-4BD1-8ADC-76D0FF3C8F60} = {19D0F818-5225-4446-B901-FD979D206A84}
 	EndGlobalSection
 EndGlobal
