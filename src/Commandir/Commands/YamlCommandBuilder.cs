@@ -76,11 +76,11 @@ public sealed class YamlCommandBuilder
         string? description = data.Description;
         Argument argument = data.Type switch
         {
+            "ushort" => new Argument<ushort>(name, description),
+            "long" => new Argument<long>(name, description),
             "int" => new Argument<int>(name, description),
             "uint" => new Argument<uint>(name, description),
             "short" => new Argument<short>(name, description),
-            "ushort" => new Argument<ushort>(name, description),
-            "long" => new Argument<long>(name, description),
             "ulong" => new Argument<ulong>(name, description),
             "float" => new Argument<float>(name, description),
             "double" => new Argument<double>(name, description),
@@ -102,10 +102,10 @@ public sealed class YamlCommandBuilder
         bool required = data.Required;
         Option option = data.Type switch
         {
-            "int" => new Option<int>(name, description) { IsRequired = data.Required },
-            "uint" => new Option<uint>(name, description) { IsRequired = data.Required },
             "short" => new Option<short>(name, description) { IsRequired = data.Required },
             "ushort" => new Option<ushort>(name, description) { IsRequired = data.Required },
+            "int" => new Option<int>(name, description) { IsRequired = data.Required },
+            "uint" => new Option<uint>(name, description) { IsRequired = data.Required },
             "long" => new Option<long>(name, description) { IsRequired = data.Required },
             "ulong" => new Option<ulong>(name, description) { IsRequired = data.Required },
             "float" => new Option<float>(name, description) { IsRequired = data.Required },
