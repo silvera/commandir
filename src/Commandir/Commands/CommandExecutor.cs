@@ -48,7 +48,7 @@ internal sealed class CommandExecutor
         bool executeCommandsInParallel = parallel ?? false;
         return executeCommandsInParallel 
             ? new ParallelCommandGroup(name, _loggerFactory) 
-            : new SequentialCommandGroup(name, _loggerFactory);
+            : new SerialCommandGroup(name, _loggerFactory);
     
     }
     private void AddCommands(InvocationContext invocationContext, CommandWithData command, ICommandGroup group, bool isRootGroup)

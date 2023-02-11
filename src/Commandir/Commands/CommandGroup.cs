@@ -47,7 +47,7 @@ internal interface ICommandGroup
     Task<List<object?>> ExecuteAsync();
 }
 
-internal abstract class CommandGroup : ICommandGroup
+internal abstract class CommandGroupBase : ICommandGroup
 {
     protected ILogger Logger { get; }
     protected CommandGroup(string name, ILogger logger)
@@ -75,9 +75,9 @@ internal abstract class CommandGroup : ICommandGroup
     public abstract Task<List<object?>> ExecuteAsync();
 }
 
-internal sealed class SequentialCommandGroup : CommandGroup
+internal sealed class SerialCommandGroup : CommandGroupBase
 {
-    public SequentialCommandGroup(string name, ILogger logger) : base(name, logger.ForContext<SequentialCommandGroup>())
+    public SerialCommandGroup(string name, ILogger logger) : base(name, logger.ForContext<SequentialCommandGroup>())
     {
     }
 
@@ -106,7 +106,7 @@ internal sealed class SequentialCommandGroup : CommandGroup
     }
 }
 
-internal sealed class ParallelCommandGroup : CommandGroup
+internal sealed class ParallelCommandGroup : CommandGroupBase
 {
     public ParallelCommandGroup(string name, ILogger logger) : base(name, logger.ForContext<ParallelCommandGroup>())
     {

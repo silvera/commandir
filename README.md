@@ -5,8 +5,10 @@ Simple Command Runner
 
 Commandir is an application that allows users to define commands in a `Commandir.yaml` file and invoke them as commands of the Commandir application itself. Commandir looks for a `Commandir.yaml` file in the current directory.
 
+The `hello` and `greet` directories contain example Commandir.yaml files. 
+
 ### Hello World
-Here is the contents of a minimal Commandir.yaml file illustrating the canonical Hello World example:
+The `hello` directory contains a Commandir.yaml file illustrating the canonical Hello World example:
 
 ```
 ---
@@ -15,13 +17,14 @@ commands:
      parameters:
         run: echo "Hello World!"
 ```
-Running Commandir from the directory containing this Commandir.yaml file, without any command line arguments, displays the help information:
+Running Commandir from the hello directory, without any command line arguments, displays the help information:
 
 ```
-user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir 
+user@host:~/dev/commandir/src/Commandir/hello$ ../bin/Debug/net6.0/Commandir 
 Required command was not provided.
 
 Description:
+  The canonical Hello World example
 
 Usage:
   Commandir [command] [options]
@@ -32,21 +35,21 @@ Options:
   -?, -h, --help  Show help and usage information
 
 Commands:
-  hello
+  hello  Prints 'Hello World!'
 ```
 
 Note how the `hello` command defined in the Commandir.yaml file is a bona fide Commandir command.
 
 Running Commandir from a directory that does not contain a Commandir.yaml file generates an error message:
 ```
-user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/no-commandir-file$ ../Commandir 
-Commandir: FileNotFoundException: Could not find file '/home/user/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/no-commandir-file/Commandir.yaml'.
+user@host:~/dev/commandir/src/Commandir$ bin/Debug/net6.0/Commandir 
+Commandir: FileNotFoundException: Could not find file '~/dev/commandir/src/Commandir/Commandir.yaml'.
 ```
 
 Running Commandir with the `hello` command on Linux (Ubuntu 22.04 LTS) results in the following output:
 
 ```
-user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir hello
+user@host:~/dev/commandir/src/Commandir/hello$ ../bin/Debug/net6.0/Commandir hello
 Hello World!
 ```
 
@@ -68,32 +71,26 @@ commands:
 ### Logging
 Commandir does not log any activity by default, so as not to contaminate STDOUT. Verbose logging is enabled via the --verbose (-v) flag, which shows the `sh` shell is used:
 ```
-user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir -v hello
-Commandir.Commands.CommandExecutor: Invoking command: /Commandir/hello
-Commandir.Commands.CommandExecutor: Executing command: /Commandir/hello
-Commandir.Commands.CommandExecutor: Creating file: /home/user/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/Commandir_hello.sh with contents: echo "Hello World!"
-Commandir.Commands.CommandExecutor: Process Starting: sh /home/user/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/Commandir_hello.sh
+user@host:~/dev/commandir/src/Commandir/hello$ ../bin/Debug/net6.0/Commandir -v hello
+Commandir.Commands.CommandExecutor: Executing command `/Commandir/hello`
+Commandir.Commands.SequentialCommandGroup: Adding command `/Commandir/hello` to group `hello`
+Commandir.Commands.SequentialCommandGroup: Executing command `/Commandir/hello` on group `hello`
+Commandir.Executors.Shell: Creating file: ~/dev/commandir/src/Commandir/hello/Commandir_hello.sh with contents: echo "Hello World!"
+Commandir.Executors.Shell: Process Starting: sh ~/dev/commandir/src/Commandir/hello/Commandir_hello.sh
 Hello World!
-Commandir.Commands.CommandExecutor: Process Complete. ExitCode: 0
-Commandir.Commands.CommandExecutor: Deleting file: /home/user/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish/Commandir_hello.sh
+Commandir.Executors.Shell: Process Complete. ExitCode: 0
+Commandir.Executors.Shell: Deleting file: ~/dev/commandir/src/Commandir/hello/Commandir_hello.sh
 ```
 
 ### A More Complex Example
 
-Commandir supports parameters, arguments, options and subcommands. These are demonstrated via the Commandir.yaml file included with the application:
+Commandir supports parameters, arguments, options and subcommands. These are demonstrated by the Commandir.yaml file in the `greet` folder:
 
 ```
 ---
-description: Sample Commands
+name: Commandir
+description: Greeting commands
 commands:
-   - name: hello
-     parameters:
-        executable: true
-     commands:
-        - name: world
-          description: Prints 'Hello World'
-          parameters:
-             run: echo "Hello World!"
    - name: greet
      description: Greets the user
      parameters:
@@ -112,13 +109,13 @@ commands:
 Running the `greet` command:
 
 ```
-user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir greet "John Smith"
+user@host:~/dev/commandir/src/Commandir/greet$ ../bin/Debug/net6.0/Commandir greet "John Smith"
 Hello John Smith!
 ```
 
 The `greeting` defaults to "Hello " but can be optionally overridden by the `--greeting` option: 
 ```
-user@host:~/dev/commandir/src/Commandir/bin/Release/net6.0/linux-x64/publish$ ./Commandir greet "John Smith" --greeting "Hey!"
+user@host:~/dev/commandir/src/Commandir/greet$ ../bin/Debug/net6.0/Commandir greet "John Smith" --greeting "Hey!"
 Hey! John Smith!
 ```
 ### Templates
@@ -140,7 +137,26 @@ Arguments are required.
 Options are optional by default. They can be made required by adding `required: true` to the option. A `shortName` can also be specified, which allows options to be invoked via flag syntax, e.g. `-g` instead of `--greeting`.
 
 ### Subcommands
-Commandir supports subcommands by adding a `commands` dictionary to any command, as illustrated by the Sample Commands. 
+Commandir supports subcommands by adding a `commands` dictionary to any command. For example, we can add a `world` subcommand to the `hello` command from earlier:
+
+```
+---
+name: Commandir
+description: The canonical Hello World example
+commands:
+   - name: hello
+     commands:
+        - name: world
+          description: Prints 'Hello World!'
+          parameters:
+             run: echo "Hello World!"
+```
+
+The command is invoked as follows:
+```
+user@host:~/dev/commandir/src/Commandir/hello$ ../bin/Debug/net6.0/Commandir hello world
+Hello World!
+```
 
 ### Invocation
 Internally, each command is associated with an `executor`. The default executor is `shell`, which runs the commands specified by `run` using the specified shell. There is also a `test` executor, used for unit tests. 
@@ -148,14 +164,46 @@ Internally, each command is associated with an `executor`. The default executor 
 When a command is invoked, the executor receives a single dictionary containing the  values of the parameters, arguments and options.
 
 #### Subcommand Execution
-Commands with subcommands (aka `internal` commands) are invokable by default. In the Sample Commands, the `hello world` command can be invoked in the following ways:
- - `.\Commandir hello`
- - `.\Commandir hello world`
+Commands with subcommands (aka `parent` commands) are not executable by default. For example, trying to execute the `hello` command above yields:
+```
+user@host:~/dev/commandir/src/Commandir/hello$ ../bin/Debug/net6.0/Commandir hello
+Required command was not provided.
 
-Invoking an internal command will automatically invoke all child commands recursively. This differs from the default behavior of most applications with subcommands because require a single subcommand to be invoked. 
+Description:
+
+Usage:
+  Commandir hello [command] [options]
+
+Options:
+  -?, -h, --help  Show help and usage information
+
+Commands:
+  world  Prints 'Hello World!'
+```
+
+An parent command can be used to recursively execute child commands (in serial or parallel) by adding an `executable: true` parameter to the parent command's parameters dictionary. The updated Commandir.yaml file is:
+```
+---
+name: Commandir
+description: The canonical Hello World example
+commands:
+   - name: hello
+     parameters:
+        executable: true
+     commands:
+        - name: world
+          description: Prints 'Hello World!'
+          parameters:
+             run: echo "Hello World!"
+```
+The `hello` command can now be executed, which automatically executes the `world` child command:
+```
+user@host:~/dev/commandir/src/Commandir/hello$ ../bin/Debug/net6.0/Commandir hello
+Hello World!
+```
 
 #### Parallel Execution
-When an internal command is invoked, its subcommands are invoked sequentially by default. They can be invoked in parallel by adding the `parallel: true` parameter to the internal command's parameters dictionary.
+When an internal command is invoked, its subcommands are invoked sequentially by default. They can be invoked in parallel by adding the `parallel: true` parameter to the parent command's parameters dictionary.
 
 ```
 ---
@@ -202,4 +250,4 @@ commands:
 
 ```
 
-Invoking the `group-tests` command creates a top-level parallel command group (`group-tests`) containing a serial command group (`serial`) and another parallel command group (`parallel` ). The serial and parallel groups are executed in parallel, with the `serial1-serial3` commands executed serially and the `parallel1-parallel3` commands executed in parallel.
+Invoking the `group-tests` command creates a top-level parallel command group (`group-tests`) containing a serial command group (`serial`) and another parallel command group (`parallel`). The serial and parallel groups are executed in parallel, with the `serial1-serial3` commands executed serially and the `parallel1-parallel3` commands executed in parallel.
