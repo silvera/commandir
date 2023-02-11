@@ -2,6 +2,8 @@ using Commandir.Interfaces;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
+namespace Commandir.Executors;
+
 /// <summary>
 /// Runs the command specified by the 'run' parameter.
 /// </summary>
@@ -13,6 +15,8 @@ internal sealed class Shell : IExecutor
     
     public async Task<object?> ExecuteAsync(IExecutionContext context)
     {
+        var logger = context.Logger.ForContext<Shell>();
+
         object? shellObj = context.ParameterContext.GetParameterValue("shell");
         string? shellName = shellObj as string;
         if(shellName is null)
@@ -68,7 +72,7 @@ internal sealed class Shell : IExecutor
         string shellFilePath = Path.Combine(Directory.GetCurrentDirectory(), shellFileName);
         
         // Write the contents of the command to the file.
-        context.Logger.Debug("Creating file: {ShellFile} with contents: {ShellFileContents}", shellFilePath, formattedCommand);
+        logger.Debug("Creating file: {ShellFile} with contents: {ShellFileContents}", shellFilePath, formattedCommand);
         
         using (var writer = new StreamWriter(shellFilePath))
         {
@@ -94,24 +98,24 @@ internal sealed class Shell : IExecutor
             processStartInfo.ArgumentList.Add(shellFilePath);
 
             string commandLine = $"{shellData.Name} {string.Join(" ", processStartInfo.ArgumentList)}";
-            context.Logger.Debug("Process Starting: {CommandLine}", commandLine);
+            logger.Debug("Process Starting: {CommandLine}", commandLine);
             var process = Process.Start(processStartInfo);
             if(process == null)
                 throw new Exception($"Failed to create process `{commandLine}`");
     
             await process.WaitForExitAsync(context.CancellationToken);
             int exitCode = process.ExitCode;
-            context.Logger.Debug("Process Complete. ExitCode: {ExitCode}", exitCode);
+            logger.Debug("Process Complete. ExitCode: {ExitCode}", exitCode);
             return process.ExitCode;
         }
         catch(Exception e)
         {
-            context.Logger.Error(e, "Exeception while exeucting: {Run}", formattedCommand);
+            logger.Error(e, "Exeception while executing: {Run}", formattedCommand);
             return -1;
         }
         finally
         {
-            context.Logger.Debug("Deleting file: {ShellFile}", shellFilePath);
+            logger.Debug("Deleting file: {ShellFile}", shellFilePath);
             File.Delete(shellFilePath);
         }
     }

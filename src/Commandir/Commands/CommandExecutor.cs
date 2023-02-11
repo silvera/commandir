@@ -1,5 +1,3 @@
-using Commandir.Interfaces;
-using Commandir.Executors;
 using Serilog;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
@@ -27,38 +25,7 @@ public sealed class CommandExecutionResult
     }
 }
 
-internal interface ICommand
-{
-    string Name { get; }
-    Task<object?> ExecuteAsync();
-}
 
-internal sealed class ExecutableCommand : ICommand
-{
-    private readonly IExecutor _executor;
-    private readonly IExecutionContext _executionContext;
-
-    public string Name => Command.GetPath();
-    public string Path => Command.GetPath();
-    public CommandWithData Command { get; }
-    public ExecutableCommand(CommandWithData command, ParameterContext parameterContext, CancellationToken cancellationToken, ILogger logger)
-    {
-        Command = command;
-
-        string? executorName = command.Data.Executor;
-        _executor = executorName switch
-        {
-            "test" => new Test(),
-            _ => new Shell()
-        };
-        _executionContext = new Commandir.Interfaces.ExecutionContext(logger,cancellationToken, command.GetPath(), parameterContext);
-    }
-
-    public Task<object?> ExecuteAsync()
-    {
-        return _executor.ExecuteAsync(_executionContext);
-    }
-}
 
 /// <summary>
 /// Responsibe for executing the invoked command. 
@@ -90,8 +57,8 @@ internal sealed class CommandExecutor
 
         if(command.Subcommands.Count == 0)
         {  
-            var executableCommand = new ExecutableCommand(command, parameterContext, invocationContext.GetCancellationToken(), _logger);
-            group.Add(executableCommand);
+            var executable = new Executable(command, parameterContext, invocationContext.GetCancellationToken(), _loggerFactory);
+            group.Add(executable);
         }
         else
         {

@@ -1,13 +1,48 @@
+using Commandir.Interfaces;
+using Commandir.Executors;
 using Serilog;
 
 namespace Commandir.Commands;
 
+internal interface IExecutable
+{
+    string Name { get; }
+    Task<object?> ExecuteAsync();
+}
+
+internal sealed class Executable : IExecutable
+{
+    private readonly IExecutor _executor;
+    private readonly IExecutionContext _executionContext;
+
+    public string Name => Command.GetPath();
+
+    public CommandWithData Command { get; }
+    public Executable(CommandWithData command, ParameterContext parameterContext, CancellationToken cancellationToken, ILogger logger)
+    {
+        Command = command;
+
+        string? executorName = command.Data.Executor;
+        _executor = executorName switch
+        {
+            "test" => new Test(),
+            _ => new Shell()
+        };
+        _executionContext = new Commandir.Interfaces.ExecutionContext(logger,cancellationToken, command.GetPath(), parameterContext);
+    }
+
+    public Task<object?> ExecuteAsync()
+    {
+        return _executor.ExecuteAsync(_executionContext);
+    }
+}
+
 internal interface ICommandGroup
 {
     string Name { get; }
-    List<ICommand> Commands { get; }
+    List<IExecutable> Commands { get; }
     List<ICommandGroup> Groups { get; }
-    void Add(ICommand command);
+    void Add(IExecutable command);
     void Add(ICommandGroup group);
     Task<List<object?>> ExecuteAsync();
 }
@@ -23,13 +58,13 @@ internal abstract class CommandGroup : ICommandGroup
     
     public string Name { get; }
 
-    public List<ICommand> Commands { get; } = new ();
+    public List<IExecutable> Commands { get; } = new ();
     public List<ICommandGroup> Groups { get; } = new ();
 
-    public virtual void Add(ICommand command) 
+    public virtual void Add(IExecutable executable) 
     {
-        Logger.Debug("Adding command `{Name}` to group `{GroupName}`", command.Name, Name);
-        Commands.Add(command);
+        Logger.Debug("Adding command `{Name}` to group `{GroupName}`", executable.Name, Name);
+        Commands.Add(executable);
     }
     public virtual void Add(ICommandGroup group)
     {
@@ -49,10 +84,10 @@ internal sealed class SequentialCommandGroup : CommandGroup
     private async Task<List<object?>> ExecuteAsyncCore(ICommandGroup group)
     {
         List<object?> results = new();
-        foreach(ExecutableCommand command in group.Commands)
+        foreach(IExecutable executable in group.Commands)
         {
-            Logger.Debug("Executing command `{Path}` on group `{GroupName}`", command.Path, Name);
-            results.Add(await command.ExecuteAsync());
+            Logger.Debug("Executing command `{Path}` on group `{GroupName}`", executable.Name, Name);
+            results.Add(await executable.ExecuteAsync());
         }
 
         foreach(ICommandGroup g in group.Groups)
