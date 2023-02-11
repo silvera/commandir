@@ -118,6 +118,16 @@ The `greeting` defaults to "Hello " but can be optionally overridden by the `--g
 user@host:~/dev/commandir/src/Commandir/greet$ ../bin/Debug/net6.0/Commandir greet "John Smith" --greeting "Hey!"
 Hey! John Smith!
 ```
+
+### Arguments
+Arguments are required. 
+
+### Options
+Options are optional by default. They can be made required by adding `required: true` to the option. A `shortName` can also be specified, which allows options to be invoked via flag syntax, e.g. `-g` instead of `--greeting`.
+
+### Argument/Option Types
+The type of an argument or option can be specified by setting: `type: <type>`. A parse error results if a value of the wrong type is supplied, e.g. a string when an int is expected. The supported types are: `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `bool`, `string`. The default type is `string`.  
+
 ### Templates
 Parameters, arguments and options can be referenced in the `run` parameter via `mustache` template syntax. In the above example, the values of the greeting parameter and name argument are populated with the appropriate values when the command is executed.
 
@@ -130,11 +140,6 @@ Parameters can be defined at higher levels (e.g. a parent command) and overridde
 
 Parameters can also be overridden by arguments or options, by setting the name of argument or option to the name of the parameter. The `greeting` parameter and option above illustrates this. 
 
-### Arguments
-Arguments are required. 
-
-### Options
-Options are optional by default. They can be made required by adding `required: true` to the option. A `shortName` can also be specified, which allows options to be invoked via flag syntax, e.g. `-g` instead of `--greeting`.
 
 ### Subcommands
 Commandir supports subcommands by adding a `commands` dictionary to any command. For example, we can add a `world` subcommand to the `hello` command from earlier:
