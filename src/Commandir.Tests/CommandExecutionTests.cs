@@ -25,6 +25,10 @@ public class CommandExecutionTests : TestsBase
                        shortName: n
                        description: An override for the user's name.
                        required: false
+                    -  name: count
+                       description: An integer count
+                       type: int
+                       required: false
         ";
     }
 
@@ -56,5 +60,15 @@ public class CommandExecutionTests : TestsBase
         Assert.NotNull(result);
         string? commandResult = result!.Results.First() as string;
         Assert.Equal("Hello Universe", commandResult);
+    }
+
+    [Fact]
+    public async Task IntTypeTest()
+    {
+        string yaml = GetCommands();
+        CommandExecutionResult? result = await RunCommandAsync(yaml, new [] {"execution-tests", "World", "--count", "100"});
+        Assert.NotNull(result);
+        string? commandResult = result!.Results.First() as string;
+        Assert.Equal("Hello World", commandResult);
     }
 }

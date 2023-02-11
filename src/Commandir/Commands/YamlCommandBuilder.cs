@@ -76,6 +76,14 @@ public sealed class YamlCommandBuilder
         string? description = data.Description;
         Argument argument = data.Type switch
         {
+            "int" => new Argument<int>(name, description),
+            "uint" => new Argument<uint>(name, description),
+            "short" => new Argument<short>(name, description),
+            "ushort" => new Argument<ushort>(name, description),
+            "long" => new Argument<long>(name, description),
+            "ulong" => new Argument<ulong>(name, description),
+            "float" => new Argument<float>(name, description),
+            "double" => new Argument<double>(name, description),
             "bool" => new Argument<bool>(name, description),
             "string" => new Argument<string>(name, description),
             _ => new Argument<string>(name, description)
@@ -91,8 +99,17 @@ public sealed class YamlCommandBuilder
 
         string name = $"--{data.Name}";
         string? description = data.Description;
+        bool required = data.Required;
         Option option = data.Type switch
         {
+            "int" => new Option<int>(name, description) { IsRequired = data.Required },
+            "uint" => new Option<uint>(name, description) { IsRequired = data.Required },
+            "short" => new Option<short>(name, description) { IsRequired = data.Required },
+            "ushort" => new Option<ushort>(name, description) { IsRequired = data.Required },
+            "long" => new Option<long>(name, description) { IsRequired = data.Required },
+            "ulong" => new Option<ulong>(name, description) { IsRequired = data.Required },
+            "float" => new Option<float>(name, description) { IsRequired = data.Required },
+            "double" => new Option<double>(name, description) { IsRequired = data.Required },
             "bool" => new Option<bool>(name, description) { IsRequired = data.Required },
             "string" => new Option<string>(name, description) { IsRequired = data.Required },
             _ => new Option<string>(name, description) { IsRequired = data.Required }
