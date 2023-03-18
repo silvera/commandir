@@ -50,7 +50,7 @@ internal interface ICommandGroup
 internal abstract class CommandGroupBase : ICommandGroup
 {
     protected ILogger Logger { get; }
-    protected CommandGroup(string name, ILogger logger)
+    protected CommandGroupBase(string name, ILogger logger)
     {
         Name = name;
         Logger = logger;
