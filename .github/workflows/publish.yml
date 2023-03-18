@@ -35,7 +35,7 @@ jobs:
           release_name="Commandir-$tag-${{ matrix.target }}"
          
           # Build and publish
-          dotnet publish --configuration Release --runtime "${{ matrix.target }}" --self-contained true -o "$release_name"
+          dotnet publish --configuration Release --runtime "${{ matrix.target }}" -o "$release_name"
 
           # Pack files
           if [ "${{ matrix.target }}" == "win-x64" ]; then
