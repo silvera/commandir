@@ -77,7 +77,7 @@ internal abstract class CommandGroupBase : ICommandGroup
 
 internal sealed class SerialCommandGroup : CommandGroupBase
 {
-    public SerialCommandGroup(string name, ILogger logger) : base(name, logger.ForContext<SequentialCommandGroup>())
+    public SerialCommandGroup(string name, ILogger logger) : base(name, logger.ForContext<SerialCommandGroup>())
     {
     }
 
