@@ -1,0 +1,55 @@
+name: Publish
+on: 
+  release: 
+    types: [published]
+
+jobs:
+  release:
+    name: Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        dotnet-version: [ '6.0.x' ]
+        kind: ['linux', 'windows']
+        include:
+          - kind: linux
+            os: ubuntu-latest
+            target: linux-x64
+          - kind: windows
+            os: windows-latest
+            target: windows-x64
+    steps:
+      - name: Checkout
+      - uses: actions/checkout@v3
+      
+      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      
+      - name: Build
+        shell: bash
+        run: |
+          # Define some variables that we need:
+          tag=$(git describe --tags --abbrev=0)
+          release_name="Commandir-$tag-${{ matrix.target }}"
+         
+          # Build and publish
+          dotnet publish --configuration Release --runtime "${{ matrix.target }}" --self-contained true -o "$release_name"
+
+          # Pack files
+          if [ "${{ matrix.target }}" == "win-x64" ]; then
+            7z a -tzip "${release_name}.zip" "./${release_name}/*"
+          else
+            tar czvf "${release_name}.tar.gz" "$release_name"
+          fi
+
+          # Delete output directory
+          rm -r "$release_name"
+      
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "Commandir*"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
