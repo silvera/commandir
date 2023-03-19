@@ -17,7 +17,7 @@ jobs:
             target: linux-x64
           - kind: windows
             os: windows-latest
-            target: windows-x64
+            target: win-x64
     steps:
       - name: Checkout
         uses: actions/checkout@v3
