@@ -2,6 +2,7 @@
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
@@ -67,7 +68,9 @@ namespace Commandir
             _logger = new LoggerConfiguration()
                 .MinimumLevel.Override("System", LogEventLevel.Error)
                 .MinimumLevel.Override("Microsoft", LogEventLevel.Error)
-                .WriteTo.Console(outputTemplate: "Commandir: {Message:lj}{NewLine}{Exception}")
+                .WriteTo.Console(
+                    theme: ConsoleTheme.None,
+                    outputTemplate: "Commandir: {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
         }
 
@@ -93,7 +96,9 @@ namespace Commandir
                 .MinimumLevel.ControlledBy(_logLevel)
                 .MinimumLevel.Override("System", LogEventLevel.Error)
                 .MinimumLevel.Override("Microsoft", LogEventLevel.Error)
-                .WriteTo.Console(outputTemplate: "{SourceContext}: {Message:lj}{NewLine}{Exception}")
+                .WriteTo.Console(
+                    theme: ConsoleTheme.None,
+                    outputTemplate: "{SourceContext}: {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
         }
 
