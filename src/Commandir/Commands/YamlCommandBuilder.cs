@@ -32,6 +32,15 @@ public sealed class YamlCommandBuilder
 
         rootCommandData.Options.Add(new OptionData
         {
+            Name = "init",
+            ShortName = "i",
+            Description = "Creates a new Commandir.yaml file in the current directory.",
+            Type = "bool"
+        });
+
+
+        rootCommandData.Options.Add(new OptionData
+        {
             Name = "verbose",
             ShortName = "v",
             Description = "Enables verbose logging.",

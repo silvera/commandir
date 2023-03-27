@@ -20,7 +20,22 @@ namespace Commandir
 
             try
             {
-                string yamlFile = Path.Combine(Directory.GetCurrentDirectory(), "Commandir.yaml");
+                string currentDirectory = Directory.GetCurrentDirectory();
+                string yamlFile = Path.Combine(currentDirectory, "Commandir.yaml");
+                if(!File.Exists(yamlFile))
+                {
+                    // Manually check the command line arguments for the init flag beause System.CommandLine has not yet processed them. 
+                    if(args.Contains("--init") || args.Contains("-i"))
+                    {
+                        await CreateNewCommandirFileAsync(commandirLogger);
+                        return;
+                    }
+                    else
+                    {
+                        throw new MissingCommandirFileException();
+                    }
+                }
+                    
                 string yaml = File.ReadAllText(yamlFile);
                 
                 YamlCommandBuilder commandBuilder = new YamlCommandBuilder(yaml);
@@ -57,6 +72,32 @@ namespace Commandir
             {
                 exceptionLogger.LogException(e);
             }
+        }
+
+        private static async Task CreateNewCommandirFileAsync(CommandirLogger logger)
+        { 
+            string yamlFileContents = $@"---
+name: Commandir
+description: Commandir Starter File
+commands:
+   - name: hello
+     description: Prints 'Hello World!'
+     parameters:
+        run: echo ""Hello World!""
+            ";
+
+            string currentDirectory = Directory.GetCurrentDirectory();
+            string yamlFile = Path.Combine(currentDirectory, "Commandir.yaml"); 
+            await File.WriteAllTextAsync(yamlFile, yamlFileContents);
+            logger.Logger.Warning("Created a new Commandir.yaml file in the current directory ({CurrentDirectory}) ", currentDirectory);
+        }
+    }
+
+    internal sealed class MissingCommandirFileException : Exception
+    {
+        public MissingCommandirFileException()
+            : base($"Could not find a Commandir.yaml file in the current directory ({Directory.GetCurrentDirectory()}). Run Commandir from a directory containing a Commandir.yaml file or run Commandir with the --init flag to create a new Commandir.yaml file in the current directory.")
+        {
         }
     }
 
