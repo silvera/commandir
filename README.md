@@ -43,7 +43,13 @@ Note how the `hello` command defined in the Commandir.yaml file is a bona fide C
 Running Commandir from a directory that does not contain a Commandir.yaml file generates an error message:
 ```
 user@host:~/dev/commandir/src/Commandir$ bin/Debug/net6.0/Commandir 
-Commandir: FileNotFoundException: Could not find file '~/dev/commandir/src/Commandir/Commandir.yaml'.
+Commandir: CommandirFileException: Could not find a Commandir.yaml file in the current directory (/home/arisilver/dev/commandir/src/Commandir/bin/Debug/net6.0). Run Commandir from a directory containing a Commandir.yaml file or run Commandir with the --init flag to create a new Commandir.yaml file in the current directory.
+```
+
+Running Commandir from a directory that does not contain a Commandir.yaml file with the `--init` flag will create a new starter Commandir.yaml file in that directory:
+
+```
+: Created a new Commandir.yaml file in the current directory (~/dev/commandir/src/Commandir/bin/Debug/net6.0) 
 ```
 
 Running Commandir with the `hello` command on Linux (Ubuntu 22.04 LTS) results in the following output:
